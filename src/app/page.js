@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import useWebRTC from "@/hooks/useWebRTC";
+import useWebRTC from "@/hooks/WebRTC";
 import VideoTile from "@/components/videoTile";
 
 export default function Home() {
