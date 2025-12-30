@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+const BACKEND_URL = "https://vx3vbn0n-5000.inc1.devtunnels.ms/";
 
 export default function useWebRTC() {
   const localVideoRef = useRef(null);
