@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const BACKEND_URL = process.env.BACKEND_URL ||"http://localhost:5000";
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
 export default function useWebRTC() {
   const localVideoRef = useRef(null);
@@ -21,7 +21,11 @@ export default function useWebRTC() {
   const [status, setStatus] = useState("idle");
 
   const iceServers = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+    ],
   };
 
   useEffect(() => {
