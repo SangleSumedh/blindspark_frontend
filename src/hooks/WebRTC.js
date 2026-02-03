@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const BACKEND_URL = "https://vx3vbn0n-5000.inc1.devtunnels.ms/";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function useWebRTC() {
   const localVideoRef = useRef(null);
@@ -18,24 +18,46 @@ export default function useWebRTC() {
 
   const [role, setRole] = useState(null);
   const [connected, setConnected] = useState(false);
-  const [status, setStatus] = useState("idle");
+  const [status, setStatus] = useState("idle"); // idle | searching | connecting | matched
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [peerDisconnected, setPeerDisconnected] = useState(false);
+  const [matchData, setMatchData] = useState(null); // { commonInterests, score, peerProfile }
 
   const iceServers = {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
       { urls: "stun:stun2.l.google.com:19302" },
-    ],
+      // TURN servers for NAT traversal
+      {
+        urls: process.env.NEXT_PUBLIC_TURN_URL,
+        username: process.env.NEXT_PUBLIC_TURN_USERNAME,
+        credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL,
+      },
+      {
+        urls: process.env.NEXT_PUBLIC_TURN_URL_443,
+        username: process.env.NEXT_PUBLIC_TURN_USERNAME,
+        credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL,
+      },
+    ].filter(server => server.urls), // Filter out undefined entries if env vars not set
   };
 
   useEffect(() => {
-    socketRef.current = io(BACKEND_URL, { transports: ["websocket"] });
+    socketRef.current = io(BACKEND_URL, { 
+      transports: ["websocket"],
+      extraHeaders: {
+        "ngrok-skip-browser-warning": "true"
+      }
+    });
 
     // 1. Initial Match - Setup PC immediately
-    socketRef.current.on("matched", async ({ roomId }) => {
+    socketRef.current.on("matched", async ({ roomId, commonInterests, score, peerProfile }) => {
       currentRoomId.current = roomId;
-      setStatus("matched");
-      console.log("Matched in room:", roomId);
+      setMatchData({ commonInterests, score, peerProfile });
+      setStatus("connecting"); // Show connecting state during handshake
+      setPeerDisconnected(false);
+      console.log("Matched in room:", roomId, "Score:", score);
 
       // Crucial: Initialize PC as soon as we know a match exists
       await ensureMediaAndPC();
@@ -112,6 +134,14 @@ export default function useWebRTC() {
       }
     });
 
+    // 4. Handle peer disconnection
+    socketRef.current.on("peer-disconnected", () => {
+      console.log("Peer disconnected");
+      setPeerDisconnected(true);
+      setConnected(false);
+      cleanupPC();
+    });
+
     return () => {
       socketRef.current?.disconnect();
       cleanupPC();
@@ -171,7 +201,11 @@ export default function useWebRTC() {
 
     pc.onconnectionstatechange = () => {
       console.log("Connection State:", pc.connectionState);
-      setConnected(pc.connectionState === "connected");
+      const isConnected = pc.connectionState === "connected";
+      setConnected(isConnected);
+      if (isConnected) {
+        setStatus("matched");
+      }
       if (
         pc.connectionState === "failed" ||
         pc.connectionState === "disconnected"
@@ -205,12 +239,13 @@ export default function useWebRTC() {
     pendingCandidatesRef.current = [];
   }
 
-  const findMatch = async () => {
+   const findMatch = async (userProfile) => {
     setStatus("searching");
+    setPeerDisconnected(false);
     try {
       await initMedia();
       if (socketRef.current) {
-        socketRef.current.emit("join-queue");
+        socketRef.current.emit("join-queue", { userProfile });
       }
     } catch (error) {
       setStatus("idle");
@@ -218,12 +253,74 @@ export default function useWebRTC() {
     }
   };
 
+  // Toggle audio mute
+  const toggleMute = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+      }
+    }
+  };
+
+  // Toggle video on/off
+  const toggleVideo = () => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOff(!videoTrack.enabled);
+      }
+    }
+  };
+
+  // Skip current peer and find next stranger
+  const skipToNext = (userProfile) => {
+    console.log("Skipping to next stranger");
+    
+    // Notify server we're leaving the current room
+    if (socketRef.current && currentRoomId.current) {
+      socketRef.current.emit("leave-room", { roomId: currentRoomId.current });
+    }
+    
+    // Clean up current peer connection
+    cleanupPC();
+    
+    // Clear remote video
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+    
+    // Reset state
+    currentRoomId.current = null;
+    pendingCandidatesRef.current = [];
+    roleRef.current = null;
+    setRole(null);
+    setConnected(false);
+    setPeerDisconnected(false);
+    setMatchData(null);
+    
+    // Immediately join queue again
+    setStatus("searching");
+    if (socketRef.current) {
+      socketRef.current.emit("join-queue", { userProfile });
+    }
+  };
+
   return {
     localVideoRef,
     remoteVideoRef,
+    matchData,
     findMatch,
+    skipToNext,
     role,
     connected,
     status,
+    isMuted,
+    isVideoOff,
+    peerDisconnected,
+    toggleMute,
+    toggleVideo,
   };
 }
