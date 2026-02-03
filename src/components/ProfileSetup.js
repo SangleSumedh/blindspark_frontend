@@ -39,16 +39,30 @@ export default function ProfileSetup({ onComplete }) {
 
     setLoading(true);
     try {
+      // 1. Upload Avatar if selected
+      let photoURL = user.photoURL;
+      // if (avatarFile) { ... }
+
+      // 2. Sanitize Inputs
+      const sanitizedDisplayName = displayName.trim().substring(0, 20); // Max 20 chars
+      const sanitizedInterests = selectedInterests
+        .map(i => i.trim().substring(0, 20)) 
+        .filter(i => i.length > 0)
+        .slice(0, 10); 
+
+      // 3. Save to Firestore
       await setDoc(doc(db, "users", user.uid), {
-        displayName,
-        interests: selectedInterests,
-        language,
+        uid: user.uid,
         email: user.email,
+        displayName: sanitizedDisplayName || "Anonymous",
+        photoURL,
+        interests: sanitizedInterests,
+        language,
+        createdAt: new Date().toISOString(),
         isBanned: false,
         reportCount: 0,
         karma: 100,
-        createdAt: new Date().toISOString()
-      }, { merge: true });
+      });
       
       onComplete(); 
     } catch (err) {

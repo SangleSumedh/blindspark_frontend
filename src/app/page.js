@@ -9,6 +9,7 @@ import ReportModal from "@/components/ReportModal";
 import ProfileSetup from "@/components/ProfileSetup";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import Draggable from "@/components/ui/Draggable";
 
 export default function Home() {
   const { user, userProfile, loading: authLoading, logout, refreshProfile } = useAuth();
@@ -117,22 +118,31 @@ export default function Home() {
           </div>
 
           {status === "idle" ? (
-            <Card className="max-w-md w-full text-center py-12 px-8 border-zinc-800 bg-zinc-900/50">
-              <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
-                <span className="text-5xl">🔭</span>
+            <Card className="max-w-md w-full text-center py-8 md:py-12 px-6 md:px-8 border-zinc-800 bg-zinc-900/50">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
+                <span className="text-4xl md:text-5xl">🔭</span>
               </div>
-              <h2 className="text-2xl font-bold mb-2">Find your sparq</h2>
-              <p className="text-zinc-400 mb-8">Connect with people who share your vibe. Safe, anonymous, and powered by smart matching.</p>
+              <h2 className="text-xl md:text-2xl font-bold mb-2">Find your sparq</h2>
+              <p className="text-sm md:text-base text-zinc-400 mb-8">Connect with people who share your vibe. Safe, anonymous, and powered by smart matching.</p>
               <Button onClick={handleStart} size="lg" className="w-full text-lg shadow-emerald-900/50">Start Matching</Button>
             </Card>
           ) : (
-            <div className="w-full h-full max-h-[70vh] flex flex-col md:flex-row gap-4 relative">
+            <div className="w-full h-full max-h-[85vh] md:max-h-[70vh] flex flex-col md:flex-row gap-4 relative">
               
-              {/* Local Video (Floating Picture-in-Picture on Mobile, Side-by-Side on Desktop) */}
-              <div className="absolute top-4 right-4 w-32 md:w-auto md:static md:flex-1 h-48 md:h-auto rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 shadow-2xl z-30 md:z-auto">
-                 <VideoTile videoRef={localVideoRef} muted />
-                 <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold text-zinc-300">YOU</div>
-              </div>
+              {/* Local Video (Floating & Draggable) */}
+               <Draggable 
+                className="top-4 right-4 md:top-auto md:right-auto md:left-4 md:bottom-24"
+                initialPos={{ x: 0, y: 0 }}
+               >
+                  <div className="w-24 h-32 md:w-48 md:h-36 rounded-xl md:rounded-2xl overflow-hidden border-2 border-zinc-800 bg-zinc-900 shadow-2xl relative group cursor-grab active:cursor-grabbing">
+                    <VideoTile videoRef={localVideoRef} muted />
+                    <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-bold text-zinc-300 pointer-events-none">YOU</div>
+                    {/* Hover Hint */}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                      <span className="text-white text-xs font-bold drop-shadow-md">✋ Drag me</span>
+                    </div>
+                  </div>
+               </Draggable>
 
               {/* Remote Video (Main) */}
               <div className="flex-1 rounded-3xl overflow-hidden border border-zinc-800 bg-black relative shadow-2xl group">
@@ -160,53 +170,55 @@ export default function Home() {
 
         {/* Controls Dock (Glass) */}
         {status !== "idle" && (
-           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 glass-dock px-6 py-4 rounded-3xl flex items-center gap-4 z-50">
+           <div className="fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 glass-dock px-4 py-3 md:px-6 md:py-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-4 z-50 w-[95%] md:w-auto justify-between md:justify-center max-w-sm md:max-w-none">
               <button 
                 onClick={toggleMute}
-                className={`p-4 rounded-2xl transition-all duration-200 ${isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+                className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-200 ${isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-white/5 hover:bg-white/10 text-white'}`}
               >
                 {isMuted ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
                 )}
               </button>
 
               <button 
                 onClick={toggleVideo}
-                className={`p-4 rounded-2xl transition-all duration-200 ${isVideoOff ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+                className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-200 ${isVideoOff ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-white/5 hover:bg-white/10 text-white'}`}
               >
                 {isVideoOff ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
                 )}
               </button>
 
-              <div className="h-8 w-[1px] bg-white/10 mx-2"></div>
+              <div className="h-6 md:h-8 w-[1px] bg-white/10 mx-1 md:mx-2"></div>
 
               <Button 
                 onClick={() => skipToNext(userProfile)} 
-                className="rounded-2xl px-8 shadow-emerald-500/20 text-lg"
+                className="rounded-xl md:rounded-2xl px-4 md:px-8 shadow-emerald-500/20 text-sm md:text-lg flex-1"
               >
                 Next ⏭️
               </Button>
 
-              <button 
-                onClick={() => setIsReportOpen(true)}
-                className="p-4 rounded-2xl bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-500 transition-all border border-transparent hover:border-red-500/30"
-                title="Report User"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsReportOpen(true)}
+                  className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-500 transition-all border border-transparent hover:border-red-500/30"
+                  title="Report User"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                </button>
 
-              <button 
-                onClick={() => window.location.reload()}
-                className="p-4 rounded-2xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all ml-2"
-                title="Disconnect"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
-              </button>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all"
+                  title="Disconnect"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                </button>
+              </div>
            </div>
         )}
 
