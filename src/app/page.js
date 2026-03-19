@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import useWebRTC from "@/hooks/WebRTC";
+import useVideoModeration from "@/hooks/useVideoModeration";
 import VideoTile from "@/components/videoTile";
+import ModerationOverlay from "@/components/ModerationOverlay";
 import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/components/LoginPage";
 import ReportModal from "@/components/ReportModal";
@@ -10,6 +12,8 @@ import ProfileSetup from "@/components/ProfileSetup";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Draggable from "@/components/ui/Draggable";
+
+const MODERATION_DEBUG = process.env.NEXT_PUBLIC_MODERATION_DEBUG === "true";
 
 export default function Home() {
   const { user, userProfile, loading: authLoading, logout, refreshProfile } = useAuth();
@@ -20,6 +24,7 @@ export default function Home() {
     findMatch,
     skipToNext,
     reportPeer,
+    emitModerationViolation,
     role,
     connected,
     status,
@@ -30,6 +35,36 @@ export default function Home() {
     toggleMute,
     toggleVideo,
   } = useWebRTC();
+
+  const {
+    moderationState,
+    moderationMessage,
+    nsfwScore,
+    faceDetected,
+    modelsLoaded,
+    resetModeration,
+    simulateNsfwViolation,
+  } = useVideoModeration(remoteVideoRef, connected);
+
+  // Auto-report and skip when moderation terminates the session
+  const hasTerminated = useRef(false);
+  useEffect(() => {
+    if (moderationState === "terminated" && !hasTerminated.current) {
+      hasTerminated.current = true;
+      // Emit violation to backend
+      emitModerationViolation("nsfw_auto_terminate", nsfwScore);
+      // Also trigger behavior tracking
+      reportPeer();
+    }
+    if (moderationState === "clean") {
+      hasTerminated.current = false;
+    }
+  }, [moderationState, nsfwScore, emitModerationViolation, reportPeer]);
+
+  const handleSkipWithReset = (profile) => {
+    resetModeration();
+    skipToNext(profile);
+  };
 
   const handleStart = async () => {
     await findMatch(userProfile);
@@ -159,8 +194,17 @@ export default function Home() {
 
               {/* Remote Video (Main) */}
               <div className="flex-1 rounded-3xl overflow-hidden border border-zinc-800 bg-black relative shadow-2xl group">
-                <VideoTile videoRef={remoteVideoRef} />
+                <div className={`w-full h-full transition-all duration-500 ${moderationState === 'blurred' ? 'blur-[30px] scale-105' : ''}`}>
+                  <VideoTile videoRef={remoteVideoRef} />
+                </div>
                 
+                {/* Moderation Overlay */}
+                <ModerationOverlay 
+                  moderationState={moderationState} 
+                  moderationMessage={moderationMessage}
+                  onSkip={() => handleSkipWithReset(userProfile)}
+                />
+
                 {/* Overlays */}
                 {!connected && !peerDisconnected && (
                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 backdrop-blur-sm z-10">
@@ -173,7 +217,7 @@ export default function Home() {
                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/90 backdrop-blur-md z-20">
                       <span className="text-4xl mb-2">👋</span>
                       <p className="text-white font-bold text-xl">Peer Disconnected</p>
-                      <Button onClick={() => skipToNext(userProfile)} className="mt-6">Find Next Match</Button>
+                      <Button onClick={() => handleSkipWithReset(userProfile)} className="mt-6">Find Next Match</Button>
                    </div>
                 )}
               </div>
@@ -209,13 +253,24 @@ export default function Home() {
               <div className="h-6 md:h-8 w-[1px] bg-white/10 mx-1 md:mx-2"></div>
 
               <Button 
-                onClick={() => skipToNext(userProfile)} 
+                onClick={() => handleSkipWithReset(userProfile)} 
                 className="rounded-xl md:rounded-2xl px-4 md:px-8 shadow-emerald-500/20 text-sm md:text-lg flex-1"
               >
                 Next ⏭️
               </Button>
 
               <div className="flex gap-2">
+                {/* Debug: Simulate NSFW button */}
+                {MODERATION_DEBUG && (
+                  <button
+                    onClick={simulateNsfwViolation}
+                    className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-purple-500/10 hover:bg-purple-500/30 text-purple-400 hover:text-purple-300 transition-all border border-transparent hover:border-purple-500/30"
+                    title="🧪 Simulate NSFW (Debug)"
+                  >
+                    🧪
+                  </button>
+                )}
+
                 <button 
                   onClick={() => setIsReportOpen(true)}
                   className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-500 transition-all border border-transparent hover:border-red-500/30"
@@ -243,7 +298,7 @@ export default function Home() {
           reportedUserId={matchData?.peerProfile?.id}
           onReportSubmitted={() => {
             reportPeer();
-            skipToNext(userProfile);
+            handleSkipWithReset(userProfile);
           }}
         />
       </div>

@@ -314,6 +314,17 @@ export default function useWebRTC() {
     }
   };
 
+  // Emit moderation violation to backend (called by moderation system)
+  const emitModerationViolation = (violationType, nsfwScore) => {
+    if (socketRef.current && currentRoomId.current) {
+      socketRef.current.emit("moderation-violation", {
+        roomId: currentRoomId.current,
+        violationType,
+        nsfwScore,
+      });
+    }
+  };
+
   return {
     localVideoRef,
     remoteVideoRef,
@@ -321,6 +332,7 @@ export default function useWebRTC() {
     findMatch,
     skipToNext,
     reportPeer,
+    emitModerationViolation,
     role,
     connected,
     status,
