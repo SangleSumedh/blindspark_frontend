@@ -19,6 +19,7 @@ export default function Home() {
     remoteVideoRef,
     findMatch,
     skipToNext,
+    reportPeer,
     role,
     connected,
     status,
@@ -106,6 +107,18 @@ export default function Home() {
                   <div className="text-xs text-zinc-400 uppercase tracking-wider">Connected with</div>
                   <div className="text-lg font-bold text-emerald-400">{matchData.peerProfile?.displayName || "Anonymous"}</div>
                   
+                  {/* Match Quality Score */}
+                  {matchData.score != null && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[10px] uppercase tracking-widest text-zinc-500">Match</span>
+                      <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${
+                        matchData.score >= 70 ? 'bg-emerald-500/20 text-emerald-400' :
+                        matchData.score >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>{matchData.score}%</span>
+                    </div>
+                  )}
+
                   {matchData.commonInterests?.length > 0 && (
                      <div className="flex gap-1 mt-1">
                         {matchData.commonInterests.map(i => (
@@ -229,6 +242,7 @@ export default function Home() {
           remoteVideoRef={remoteVideoRef}
           reportedUserId={matchData?.peerProfile?.id}
           onReportSubmitted={() => {
+            reportPeer();
             skipToNext(userProfile);
           }}
         />

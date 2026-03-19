@@ -23,6 +23,7 @@ export default function useWebRTC() {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [peerDisconnected, setPeerDisconnected] = useState(false);
   const [matchData, setMatchData] = useState(null); // { commonInterests, score, peerProfile }
+  const matchedPeerOdId = useRef(null); // track peer's odId for reporting
 
   const iceServers = {
     iceServers: [
@@ -44,20 +45,16 @@ export default function useWebRTC() {
   };
 
   useEffect(() => {
-    socketRef.current = io(BACKEND_URL, { 
-      transports: ["websocket"],
-      extraHeaders: {
-        "ngrok-skip-browser-warning": "true"
-      }
-    });
+    socketRef.current = io(BACKEND_URL);
 
     // 1. Initial Match - Setup PC immediately
     socketRef.current.on("matched", async ({ roomId, commonInterests, score, peerProfile }) => {
       currentRoomId.current = roomId;
+      matchedPeerOdId.current = peerProfile?.id || null;
       setMatchData({ commonInterests, score, peerProfile });
       setStatus("connecting"); // Show connecting state during handshake
       setPeerDisconnected(false);
-      console.log("Matched in room:", roomId, "Score:", score);
+      console.log("Matched in room:", roomId, "Score:", score + "%", "Common:", commonInterests);
 
       // Crucial: Initialize PC as soon as we know a match exists
       await ensureMediaAndPC();
@@ -279,8 +276,9 @@ export default function useWebRTC() {
   const skipToNext = (userProfile) => {
     console.log("Skipping to next stranger");
     
-    // Notify server we're leaving the current room
+    // Notify server about the skip (for behavior tracking)
     if (socketRef.current && currentRoomId.current) {
+      socketRef.current.emit("skip-peer", { roomId: currentRoomId.current });
       socketRef.current.emit("leave-room", { roomId: currentRoomId.current });
     }
     
@@ -294,6 +292,7 @@ export default function useWebRTC() {
     
     // Reset state
     currentRoomId.current = null;
+    matchedPeerOdId.current = null;
     pendingCandidatesRef.current = [];
     roleRef.current = null;
     setRole(null);
@@ -308,12 +307,20 @@ export default function useWebRTC() {
     }
   };
 
+  // Report peer (emit to backend for behavior tracking)
+  const reportPeer = () => {
+    if (socketRef.current && matchedPeerOdId.current) {
+      socketRef.current.emit("report-peer", { reportedOdId: matchedPeerOdId.current });
+    }
+  };
+
   return {
     localVideoRef,
     remoteVideoRef,
     matchData,
     findMatch,
     skipToNext,
+    reportPeer,
     role,
     connected,
     status,
