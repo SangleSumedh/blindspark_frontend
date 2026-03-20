@@ -13,6 +13,7 @@
     "@tensorflow/tfjs": "^4.22.0",
     "cloudinary": "^2.9.0",
     "firebase": "^12.8.0",
+    "lottie-react": "^2.4.1",
     "next": "^16.1.6",
     "nsfwjs": "^4.3.0",
     "react": "19.2.3",

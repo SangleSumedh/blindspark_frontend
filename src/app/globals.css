@@ -1,4 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;600&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-rajdhani: 'Rajdhani', sans-serif;
+  --font-bebas: 'Bebas Neue', sans-serif;
+  --font-inter: 'Inter', sans-serif;
+}
 
 :root {
   --background: #ffffff;

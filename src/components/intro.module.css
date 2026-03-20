@@ -1,0 +1,32 @@
+.noiseOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.6;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+@keyframes pulseDown {
+  0%, 100% { opacity: 0; transform: scaleY(0.5) translateY(-6px); }
+  55% { opacity: 1; transform: scaleY(1) translateY(0); }
+}
+
+.pulseLine {
+  width: 1px;
+  height: 30px;
+  background: linear-gradient(to bottom, rgba(255, 90, 0, 0.7), transparent);
+  animation: pulseDown 1.8s ease-in-out infinite;
+}
+
+.enterBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 90, 0, 0.12), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.enterBtn:hover::before { transform: translateX(100%); }
