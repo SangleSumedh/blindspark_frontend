@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import useWebRTC from "@/hooks/WebRTC";
 import useVideoModeration from "@/hooks/useVideoModeration";
+import useAudioModeration from "@/hooks/useAudioModeration";
 import VideoTile from "@/components/videoTile";
 import ModerationOverlay from "@/components/ModerationOverlay";
+import AudioModerationOverlay from "@/components/AudioModerationOverlay";
 import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/components/LoginPage";
 import ReportModal from "@/components/ReportModal";
@@ -20,7 +22,9 @@ import {
   FlaskConical, 
   Zap,
   UserMinus,
-  AlertCircle
+  AlertCircle,
+  MessageSquareWarning,
+  SendHorizonal
 } from "lucide-react";
 
 const MODERATION_DEBUG = process.env.NEXT_PUBLIC_MODERATION_DEBUG === "true";
@@ -56,14 +60,25 @@ export default function Home() {
     simulateNsfwViolation,
   } = useVideoModeration(remoteVideoRef, connected);
 
-  // Auto-report and skip when moderation terminates the session
+  const {
+    audioModerationState,
+    audioModerationMessage,
+    abuseScore,
+    isListening,
+    modelsLoaded: audioModelsLoaded,
+    resetAudioModeration,
+    simulateAbuseViolation,
+    injectText,
+  } = useAudioModeration(null, connected);
+
+  const [debugTextInput, setDebugTextInput] = useState("");
+
+  // Auto-report and skip when VIDEO moderation terminates
   const hasTerminated = useRef(false);
   useEffect(() => {
     if (moderationState === "terminated" && !hasTerminated.current) {
       hasTerminated.current = true;
-      // Emit violation to backend
       emitModerationViolation("nsfw_auto_terminate", nsfwScore);
-      // Also trigger behavior tracking
       reportPeer();
     }
     if (moderationState === "clean") {
@@ -71,9 +86,38 @@ export default function Home() {
     }
   }, [moderationState, nsfwScore, emitModerationViolation, reportPeer]);
 
+  // Auto-report and skip when AUDIO moderation terminates
+  const hasAudioTerminated = useRef(false);
+  useEffect(() => {
+    if (audioModerationState === "terminated" && !hasAudioTerminated.current) {
+      hasAudioTerminated.current = true;
+      emitModerationViolation("audio_abuse_auto_terminate", abuseScore);
+      reportPeer();
+    }
+    if (audioModerationState === "clean") {
+      hasAudioTerminated.current = false;
+    }
+  }, [audioModerationState, abuseScore, emitModerationViolation, reportPeer]);
+
+  // Auto-mute local audio when audio moderation mutes the user
+  useEffect(() => {
+    if (audioModerationState === "muted" && !isMuted) {
+      toggleMute();
+    }
+  }, [audioModerationState]);
+
   const handleSkipWithReset = (profile) => {
     resetModeration();
+    resetAudioModeration();
     skipToNext(profile);
+  };
+
+  // Debug: submit typed text to audio moderation pipeline
+  const handleDebugTextSubmit = (e) => {
+    e.preventDefault();
+    if (!debugTextInput.trim()) return;
+    injectText(debugTextInput);
+    setDebugTextInput("");
   };
 
   const handleStart = async () => {
@@ -217,10 +261,18 @@ export default function Home() {
                   <VideoTile videoRef={remoteVideoRef} />
                 </div>
                 
-                {/* Moderation Overlay */}
+                {/* Video Moderation Overlay */}
                 <ModerationOverlay 
                   moderationState={moderationState} 
                   moderationMessage={moderationMessage}
+                  onSkip={() => handleSkipWithReset(userProfile)}
+                />
+
+                {/* Audio Moderation Overlay */}
+                <AudioModerationOverlay
+                  audioModerationState={audioModerationState}
+                  audioModerationMessage={audioModerationMessage}
+                  abuseScore={abuseScore}
                   onSkip={() => handleSkipWithReset(userProfile)}
                 />
 
@@ -249,7 +301,14 @@ export default function Home() {
            <div className="fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 glass-dock px-4 py-3 md:px-6 md:py-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-4 z-50 w-[95%] md:w-auto justify-between md:justify-center max-w-sm md:max-w-none">
               <button 
                 onClick={toggleMute}
-                className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-200 ${isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' : 'bg-white/5 hover:bg-white/10 text-white'}`}
+                disabled={audioModerationState === "muted" || audioModerationState === "terminated"}
+                title={audioModerationState === "muted" ? "Muted by moderation system" : undefined}
+                className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-200 ${
+                  (audioModerationState === "muted" || audioModerationState === "terminated")
+                    ? 'bg-red-500/20 text-red-500 opacity-50 cursor-not-allowed'
+                    : isMuted ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30' 
+                    : 'bg-white/5 hover:bg-white/10 text-white'
+                }`}
               >
                 {isMuted ? (
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
@@ -290,6 +349,17 @@ export default function Home() {
                   </button>
                 )}
 
+                {/* Debug: Simulate Audio Abuse button */}
+                {MODERATION_DEBUG && (
+                  <button
+                    onClick={simulateAbuseViolation}
+                    className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 hover:text-cyan-300 transition-all border border-transparent hover:border-cyan-500/30"
+                    title="🧪 Simulate Audio Abuse (Debug)"
+                  >
+                    <MessageSquareWarning size={20} />
+                  </button>
+                )}
+
                 <button 
                   onClick={() => setIsReportOpen(true)}
                   className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-500 transition-all border border-transparent hover:border-red-500/30"
@@ -307,6 +377,47 @@ export default function Home() {
                 </button>
               </div>
            </div>
+        )}
+
+        {/* Debug: Text Input Bar for Audio Moderation Testing */}
+        {MODERATION_DEBUG && status !== "idle" && (
+          <form 
+            onSubmit={handleDebugTextSubmit}
+            className="fixed bottom-20 md:bottom-24 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-lg"
+          >
+            <div className="glass-panel rounded-2xl flex items-center gap-2 px-4 py-2.5 border border-cyan-500/20 shadow-lg shadow-cyan-500/5">
+              <MessageSquareWarning size={16} className="text-cyan-400 flex-shrink-0" />
+              <input
+                type="text"
+                value={debugTextInput}
+                onChange={(e) => setDebugTextInput(e.target.value)}
+                placeholder="Type text to test audio moderation..."
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-zinc-500 outline-none"
+              />
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {audioModerationState !== "clean" && (
+                  <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${
+                    audioModerationState === "terminated" ? "bg-red-500/20 text-red-400 border border-red-500/20" :
+                    audioModerationState === "muted" ? "bg-red-500/20 text-red-400 border border-red-500/20" :
+                    "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20"
+                  }`}>
+                    {audioModerationState.toUpperCase()}
+                  </span>
+                )}
+                {abuseScore > 0 && (
+                  <span className="text-[10px] font-mono text-zinc-500">
+                    score:{abuseScore}
+                  </span>
+                )}
+                <button
+                  type="submit"
+                  className="p-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 hover:text-cyan-300 transition-all"
+                >
+                  <SendHorizonal size={16} />
+                </button>
+              </div>
+            </div>
+          </form>
         )}
 
         {/* ReportModal */}
