@@ -55,7 +55,7 @@ export default function useVideoModeration(remoteVideoRef, connected) {
         blazefaceModelRef.current = faceModel;
         setModelsLoaded(true);
 
-        if (DEBUG) console.log("[Moderation] ✅ Models loaded");
+        if (DEBUG) console.log("[Moderation] [OK] Models loaded");
       } catch (err) {
         console.error("[Moderation] Failed to load models:", err);
       }
@@ -97,7 +97,7 @@ export default function useVideoModeration(remoteVideoRef, connected) {
       setModerationMessage(reason || "Inappropriate content detected. Video hidden.");
     } else if (strikes >= STRIKE_WARNING) {
       setModerationState("warning");
-      setModerationMessage(reason || "⚠️ Potentially inappropriate content detected.");
+      setModerationMessage(reason || "Potentially inappropriate content detected.");
     }
   }, []);
 
@@ -125,14 +125,14 @@ export default function useVideoModeration(remoteVideoRef, connected) {
       if (combined > NSFW_THRESHOLD && isDominant) {
         strikeCountRef.current += 1;
         lastCleanRef.current = null;
-        if (DEBUG) console.log(`[Moderation] 🚨 Strike ${strikeCountRef.current} (Porn: ${(pornScore * 100).toFixed(0)}%, Hentai: ${(hentaiScore * 100).toFixed(0)}%)`);
+        if (DEBUG) console.log(`[Moderation] [VIOLATION] Strike ${strikeCountRef.current} (Porn: ${(pornScore * 100).toFixed(0)}%, Hentai: ${(hentaiScore * 100).toFixed(0)}%)`);
         applyEscalation(strikeCountRef.current, `NSFW content detected (score: ${(combined * 100).toFixed(0)}%)`);
       } else {
         // Clean frame — check cooldown
         if (!lastCleanRef.current) {
           lastCleanRef.current = Date.now();
         } else if (Date.now() - lastCleanRef.current > COOLDOWN_MS && strikeCountRef.current > 0) {
-          if (DEBUG) console.log("[Moderation] ✅ Cooldown passed, resetting strikes");
+          if (DEBUG) console.log("[Moderation] [CLEAN] Cooldown passed, resetting strikes");
           strikeCountRef.current = 0;
           setModerationState("clean");
           setModerationMessage("");
@@ -222,7 +222,7 @@ export default function useVideoModeration(remoteVideoRef, connected) {
     setModerationMessage("");
     setNsfwScore(0);
     setFaceDetected(true);
-    if (DEBUG) console.log("[Moderation] 🔄 Reset");
+    if (DEBUG) console.log("[Moderation] [RESET] State cleared");
   }, []);
 
   // ─── Simulate NSFW Violation (debug only) ─────────────────
@@ -230,9 +230,9 @@ export default function useVideoModeration(remoteVideoRef, connected) {
     if (!DEBUG) return;
     strikeCountRef.current += 1;
     const strike = strikeCountRef.current;
-    console.log(`[Moderation] 🧪 SIMULATED Strike ${strike}`);
+    if (DEBUG) console.log(`[Moderation] [DEBUG] SIMULATED Strike ${strike}`);
     setNsfwScore(0.95);
-    applyEscalation(strike, `🧪 Simulated NSFW violation (strike ${strike})`);
+    applyEscalation(strike, `[Simulated NSFW violation] (strike ${strike})`);
   }, [applyEscalation]);
 
   return {

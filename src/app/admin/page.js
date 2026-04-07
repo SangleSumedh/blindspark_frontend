@@ -5,6 +5,15 @@ import { collection, query, orderBy, getDocs, doc, updateDoc, where } from "fire
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { 
+  Users, 
+  ShieldAlert, 
+  CheckCircle, 
+  Gavel, 
+  AlertTriangle, 
+  Clock,
+  LayoutDashboard
+} from "lucide-react";
 
 export default function AdminDashboard() {
   const [reports, setReports] = useState([]);
@@ -111,7 +120,8 @@ export default function AdminDashboard() {
 
       {reports.length === 0 ? (
         <div className="text-center py-20 bg-zinc-900/50 rounded-2xl border border-zinc-800 border-dashed">
-           <p className="text-zinc-500">All clear! No pending reports. 🎉</p>
+           <CheckCircle className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
+           <p className="text-zinc-500">All clear! No pending reports.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -166,7 +176,7 @@ export default function AdminDashboard() {
                     onClick={() => handleBan(report.reportedUserId, report.id)} // We need to ensure we capture reportedUserId!
                     className="w-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-red-500/20"
                  >
-                    🔨 Ban User
+                    <Gavel className="w-4 h-4 mr-2" /> Ban User
                  </Button>
               </CardFooter>
             </Card>

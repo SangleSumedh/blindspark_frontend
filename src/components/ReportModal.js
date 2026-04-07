@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "./ui/Card";
 import { Button } from "./ui/Button";
+import { Flag, Camera, AlertCircle } from "lucide-react";
 
 export default function ReportModal({ isOpen, onClose, remoteVideoRef, onReportSubmitted, reportedUserId }) {
   const { user } = useAuth();
@@ -83,7 +84,7 @@ export default function ReportModal({ isOpen, onClose, remoteVideoRef, onReportS
         <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-500">
-              <span className="text-2xl">🚩</span> Report User
+              <Flag className="w-6 h-6" /> Report User
             </CardTitle>
             <CardDescription>
               We take safety seriously. Please describe the issue.
@@ -118,7 +119,7 @@ export default function ReportModal({ isOpen, onClose, remoteVideoRef, onReportS
             </div>
 
             <div className="text-xs text-zinc-500 bg-zinc-900/50 p-2 rounded border border-zinc-800 flex items-center gap-2">
-              <span>📸</span> A snapshot of the current video feed will be attached.
+              <Camera className="w-3.5 h-3.5" /> A snapshot of the current video feed will be attached.
             </div>
           </CardContent>
 

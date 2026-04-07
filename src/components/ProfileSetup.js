@@ -7,10 +7,35 @@ import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/Card";
 import { Button } from "./ui/Button";
 
+import { 
+  Music, 
+  Gamepad2, 
+  Laptop, 
+  Palette, 
+  Plane, 
+  Film, 
+  Book, 
+  Trophy, 
+  Utensils, 
+  Camera, 
+  Dog, 
+  Laugh,
+  Rocket
+} from "lucide-react";
+
 const INTERESTS_LIST = [
-  "🎵 Music", "🎮 Gaming", "💻 Tech", "🎨 Art", 
-  "✈️ Travel", "🍿 Movies", "📚 Reading", "⚽ Sports",
-  "🍔 Food", "📸 Photography", "🐶 Pets", "😂 Memes"
+  { label: "Music", icon: Music },
+  { label: "Gaming", icon: Gamepad2 },
+  { label: "Tech", icon: Laptop },
+  { label: "Art", icon: Palette },
+  { label: "Travel", icon: Plane },
+  { label: "Movies", icon: Film },
+  { label: "Reading", icon: Book },
+  { label: "Sports", icon: Trophy },
+  { label: "Food", icon: Utensils },
+  { label: "Photography", icon: Camera },
+  { label: "Pets", icon: Dog },
+  { label: "Memes", icon: Laugh }
 ];
 
 const LANGUAGES = ["English", "Spanish", "Hindi", "French", "German"];
@@ -23,12 +48,12 @@ export default function ProfileSetup({ onComplete }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const toggleInterest = (interest) => {
-    if (selectedInterests.includes(interest)) {
-      setSelectedInterests(prev => prev.filter(i => i !== interest));
+  const toggleInterest = (interestLabel) => {
+    if (selectedInterests.includes(interestLabel)) {
+      setSelectedInterests(prev => prev.filter(i => i !== interestLabel));
     } else {
       if (selectedInterests.length >= 5) return; // Max 5
-      setSelectedInterests(prev => [...prev, interest]);
+      setSelectedInterests(prev => [...prev, interestLabel]);
     }
   };
 
@@ -78,7 +103,7 @@ export default function ProfileSetup({ onComplete }) {
       <Card className="w-full max-w-lg border-zinc-800 bg-zinc-900/90 shadow-2xl animate-fade-in-up">
         <form onSubmit={handleSubmit}>
           <CardHeader>
-            <CardTitle className="text-3xl text-center bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl text-center bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent">
               Welcome to BlindSpark!
             </CardTitle>
             <CardDescription className="text-center text-zinc-400">
@@ -100,7 +125,7 @@ export default function ProfileSetup({ onComplete }) {
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full bg-zinc-950/50 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all"
+                className="w-full bg-zinc-950/50 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 outline-none transition-all"
                 placeholder="e.g. CyberPunk99"
                 maxLength={20}
               />
@@ -112,7 +137,7 @@ export default function ProfileSetup({ onComplete }) {
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="w-full bg-zinc-950/50 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 focus:ring-2 focus:ring-emerald-500/50 outline-none appearance-none"
+                className="w-full bg-zinc-950/50 border border-zinc-700 rounded-xl px-4 py-3 text-zinc-100 focus:ring-2 focus:ring-orange-500/50 outline-none appearance-none"
               >
                 {LANGUAGES.map(lang => (
                   <option key={lang} value={lang}>{lang}</option>
@@ -127,18 +152,19 @@ export default function ProfileSetup({ onComplete }) {
                 <span className="text-xs text-zinc-500">{selectedInterests.length}/5 selected</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {INTERESTS_LIST.map(interest => (
+                {INTERESTS_LIST.map(({ label, icon: Icon }) => (
                   <button
-                    key={interest}
+                    key={label}
                     type="button"
-                    onClick={() => toggleInterest(interest)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border ${
-                      selectedInterests.includes(interest)
-                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                    onClick={() => toggleInterest(label)}
+                    className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border ${
+                      selectedInterests.includes(label)
+                        ? "bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-[0_0_10px_rgba(249,115,22,0.2)]"
                         : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
                     }`}
                   >
-                    {interest}
+                    <Icon className="w-3.5 h-3.5 mr-1.5" />
+                    {label}
                   </button>
                 ))}
               </div>
@@ -149,14 +175,18 @@ export default function ProfileSetup({ onComplete }) {
             <Button 
               type="submit" 
               disabled={loading} 
-              className="w-full py-6 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-900/40"
+              className="w-full py-6 text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 shadow-orange-900/40"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
                   Saving...
                 </span>
-              ) : "Start Matching 🚀"}
+              ) : (
+                <span className="flex items-center gap-2">
+                  Start Matching <Rocket className="w-5 h-5" />
+                </span>
+              )}
             </Button>
           </CardFooter>
         </form>

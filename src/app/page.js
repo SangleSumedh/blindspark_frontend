@@ -12,6 +12,16 @@ import ProfileSetup from "@/components/ProfileSetup";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Draggable from "@/components/ui/Draggable";
+import { 
+  ShieldAlert, 
+  Sparkles, 
+  LogOut, 
+  SkipForward, 
+  FlaskConical, 
+  Zap,
+  UserMinus,
+  AlertCircle
+} from "lucide-react";
 
 const MODERATION_DEBUG = process.env.NEXT_PUBLIC_MODERATION_DEBUG === "true";
 
@@ -73,7 +83,7 @@ export default function Home() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
       </div>
     );
   }
@@ -85,8 +95,8 @@ export default function Home() {
   if (userProfile.isBanned) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white p-8 text-center">
-        <h1 className="text-6xl mb-4">🚫</h1>
-        <h2 className="text-3xl font-bold text-red-500 mb-2">Account Suspended</h2>
+        <ShieldAlert className="w-20 h-20 text-orange-500 mb-4" />
+        <h2 className="text-3xl font-bold text-orange-500 mb-2">Account Suspended</h2>
         <p className="text-zinc-400 max-w-md">
           Your account has been flagged for violating our community guidelines.
         </p>
@@ -96,30 +106,41 @@ export default function Home() {
   }
 
   return (
-    <main className="relative flex flex-col items-center min-h-screen bg-zinc-950 text-white overflow-hidden selection:bg-emerald-500/30">
+    <main className="relative flex flex-col items-center min-h-screen bg-zinc-950 text-white overflow-hidden selection:bg-orange-500/30">
       
       {/* Dynamic Background Mesh */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className={`absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-emerald-900/10 blur-[120px] transition-all duration-1000 ${status === 'matched' ? 'bg-emerald-600/20' : ''}`} />
-        <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-900/10 blur-[120px] transition-all duration-1000 ${status === 'matched' ? 'bg-blue-600/20' : ''}`} />
+        <div className={`absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-orange-900/10 blur-[120px] transition-all duration-1000 ${status === 'matched' ? 'bg-orange-600/20' : ''}`} />
+        <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-red-900/10 blur-[120px] transition-all duration-1000 ${status === 'matched' ? 'bg-red-600/20' : ''}`} />
       </div>
 
       <div className="relative z-10 w-full max-w-6xl mx-auto p-4 md:p-6 flex flex-col h-screen">
         
         {/* Header (Glass Pill) */}
         <header className="flex justify-between items-center mb-6 glass rounded-full px-6 py-3 mx-4 md:mx-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">⚡</span>
-            <span className="font-bold tracking-tight hidden sm:inline">BlindSpark</span>
+          <div className="flex items-center gap-3">
+            <img src="/Logo2.png" alt="BlindSpark Logo" className="h-8 w-auto" />
+            <div className="flex items-center gap-2">
+              <span className="font-bold tracking-tight hidden sm:inline">BlindSpark</span>
+              <div 
+                className={`h-2.5 w-2.5 rounded-full transition-all duration-500 shadow-sm ${
+                  peerDisconnected ? "bg-red-500 shadow-[0_0_8px_#ef4444]" :
+                  status === 'matched' ? "bg-green-500 shadow-[0_0_8px_#22c55e]" :
+                  (status === 'searching' || status === 'connecting') ? "bg-yellow-500 shadow-[0_0_8px_#eab308] animate-pulse" :
+                  "bg-yellow-500/50 shadow-[0_0_4px_#eab30855]" // Standby
+                }`}
+                title={peerDisconnected ? "Peer Disconnected" : status === 'matched' ? "Live" : status === 'searching' ? "Searching..." : status === 'connecting' ? "Connecting..." : "Standby"}
+              />
+            </div>
           </div>
           
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-end">
-              <span className="text-sm font-bold text-emerald-400">{userProfile.displayName}</span>
+              <span className="text-sm font-bold text-orange-400">{userProfile.displayName}</span>
               <span className="text-[10px] text-zinc-400 uppercase tracking-widest">{userProfile.karma} Karma</span>
             </div>
             <button onClick={logout} className="text-zinc-400 hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+              <LogOut size={20} />
             </button>
           </div>
         </header>
@@ -128,51 +149,49 @@ export default function Home() {
         <div className="flex-1 flex flex-col justify-center items-center w-full relative">
           
           {/* Status Badge */}
-          <div className="absolute top-0 z-20 flex flex-col items-center gap-2">
-             <div className="glass px-4 py-1.5 rounded-full flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-500 shadow-[0_0_10px_#10b981]" : "bg-zinc-500 animate-pulse"}`}></span>
-                <span className="text-xs font-bold uppercase tracking-widest text-zinc-300">
-                  {status === 'idle' ? 'Standby' : status === 'searching' ? 'Searching...' : status === 'connecting' ? 'Connecting...' : 'Live'}
-                </span>
-             </div>
-             
-             {/* Match Info Popup (Floating) */}
-             {connected && matchData && (
-                <div className="glass-panel px-6 py-3 rounded-2xl flex flex-col items-center gap-1 animate-fade-in-up mt-2">
-                  <div className="text-xs text-zinc-400 uppercase tracking-wider">Connected with</div>
-                  <div className="text-lg font-bold text-emerald-400">{matchData.peerProfile?.displayName || "Anonymous"}</div>
-                  
-                  {/* Match Quality Score */}
-                  {matchData.score != null && (
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[10px] uppercase tracking-widest text-zinc-500">Match</span>
-                      <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${
-                        matchData.score >= 70 ? 'bg-emerald-500/20 text-emerald-400' :
-                        matchData.score >= 40 ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-red-500/20 text-red-400'
-                      }`}>{matchData.score}%</span>
-                    </div>
-                  )}
+          {/* Match Info Popup (Corner) */}
+          {connected && matchData && (
+            <div className="fixed top-28 left-6 md:left-12 z-40 glass-panel px-4 py-2.5 rounded-2xl flex flex-col md:flex-row items-center gap-3 animate-fade-in-up border-orange-500/20 shadow-xl overflow-hidden">
+               <div className="flex flex-col items-center md:items-start leading-tight">
+                 <div className="text-[9px] text-zinc-500 uppercase font-black tracking-[0.2em]">Connected</div>
+                 <div className="text-sm font-bold text-orange-400">{matchData.peerProfile?.displayName || "Anonymous"}</div>
+               </div>
+               
+               <div className="h-6 w-[1px] bg-white/10 hidden md:block" />
 
-                  {matchData.commonInterests?.length > 0 && (
-                     <div className="flex gap-1 mt-1">
-                        {matchData.commonInterests.map(i => (
-                          <span key={i} className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-white">{i}</span>
-                        ))}
-                     </div>
-                  )}
-                </div>
-             )}
-          </div>
+               <div className="flex items-center gap-3">
+                 {/* Match Score */}
+                 {matchData.score != null && (
+                   <div className={`text-[10px] font-black px-2 py-1 rounded-lg ${
+                     matchData.score >= 70 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/20' :
+                     matchData.score >= 40 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20' :
+                     'bg-red-500/20 text-red-400 border border-red-500/20'
+                   }`}>
+                     {matchData.score}%
+                   </div>
+                 )}
+
+                 {matchData.commonInterests?.length > 0 && (
+                   <div className="flex gap-1.5 font-bold">
+                     {matchData.commonInterests.slice(0, 2).map(i => (
+                       <div key={i} className="bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-[9px] text-zinc-300 uppercase tracking-widest whitespace-nowrap">
+                         {i}
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+            </div>
+          )}
 
           {status === "idle" ? (
             <Card className="max-w-md w-full text-center py-8 md:py-12 px-6 md:px-8 border-zinc-800 bg-zinc-900/50">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
-                <span className="text-4xl md:text-5xl">🔭</span>
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-orange-500/20">
+                <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-orange-500" />
               </div>
               <h2 className="text-xl md:text-2xl font-bold mb-2">Find your sparq</h2>
               <p className="text-sm md:text-base text-zinc-400 mb-8">Connect with people who share your vibe. Safe, anonymous, and powered by smart matching.</p>
-              <Button onClick={handleStart} size="lg" className="w-full text-lg shadow-emerald-900/50">Start Matching</Button>
+              <Button onClick={handleStart} size="lg" className="w-full text-lg shadow-orange-900/50">Start Matching</Button>
             </Card>
           ) : (
             <div className="w-full h-full max-h-[85vh] md:max-h-[70vh] flex flex-col md:flex-row gap-4 relative">
@@ -208,14 +227,14 @@ export default function Home() {
                 {/* Overlays */}
                 {!connected && !peerDisconnected && (
                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 backdrop-blur-sm z-10">
-                      <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-4"/>
+                      <div className="w-16 h-16 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mb-4"/>
                       <p className="text-zinc-300 font-medium animate-pulse">Scanning frequencies...</p>
                    </div>
                 )}
 
                 {peerDisconnected && (
                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/90 backdrop-blur-md z-20">
-                      <span className="text-4xl mb-2">👋</span>
+                      <UserMinus className="w-12 h-12 text-orange-500 mb-2" />
                       <p className="text-white font-bold text-xl">Peer Disconnected</p>
                       <Button onClick={() => handleSkipWithReset(userProfile)} className="mt-6">Find Next Match</Button>
                    </div>
@@ -254,9 +273,9 @@ export default function Home() {
 
               <Button 
                 onClick={() => handleSkipWithReset(userProfile)} 
-                className="rounded-xl md:rounded-2xl px-4 md:px-8 shadow-emerald-500/20 text-sm md:text-lg flex-1"
+                className="rounded-xl md:rounded-2xl px-4 md:px-8 shadow-orange-500/20 text-sm md:text-lg flex-1"
               >
-                Next ⏭️
+                Next <SkipForward className="ml-2 w-4 h-4 md:w-5 md:h-5" />
               </Button>
 
               <div className="flex gap-2">
@@ -267,7 +286,7 @@ export default function Home() {
                     className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-purple-500/10 hover:bg-purple-500/30 text-purple-400 hover:text-purple-300 transition-all border border-transparent hover:border-purple-500/30"
                     title="🧪 Simulate NSFW (Debug)"
                   >
-                    🧪
+                    <FlaskConical size={20} />
                   </button>
                 )}
 
