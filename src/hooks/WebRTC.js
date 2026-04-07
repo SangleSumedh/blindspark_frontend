@@ -23,6 +23,9 @@ export default function useWebRTC() {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [peerDisconnected, setPeerDisconnected] = useState(false);
   const [matchData, setMatchData] = useState(null); // { commonInterests, score, peerProfile }
+  const [peerModerationAlert, setPeerModerationAlert] = useState(null); // { type, severity, message }
+  const [personalModerationAlert, setPersonalModerationAlert] = useState(null); // { type, severity, message }
+  const [karmaUpdate, setKarmaUpdate] = useState(null); // { karma, isBanned }
   const matchedPeerOdId = useRef(null); // track peer's odId for reporting
 
   const iceServers = {
@@ -136,7 +139,26 @@ export default function useWebRTC() {
       console.log("Peer disconnected");
       setPeerDisconnected(true);
       setConnected(false);
+      setPeerModerationAlert(null);
       cleanupPC();
+    });
+
+    // 5. Handle victim-side moderation alerts from server
+    socketRef.current.on("peer-moderation-alert", (alert) => {
+      console.log("[Moderation] Peer alert received:", alert);
+      setPeerModerationAlert(alert);
+    });
+
+    // 6. Handle violator-side system warnings from server
+    socketRef.current.on("system-warning-alert", (alert) => {
+      console.log("[Moderation] System warning received:", alert);
+      setPersonalModerationAlert(alert);
+    });
+
+    // 7. Handle karma update notifications
+    socketRef.current.on("karma-updated", (data) => {
+      console.log("[Moderation] Karma updated:", data);
+      setKarmaUpdate(data);
     });
 
     return () => {
@@ -299,6 +321,9 @@ export default function useWebRTC() {
     setConnected(false);
     setPeerDisconnected(false);
     setMatchData(null);
+    setPeerModerationAlert(null);
+    setPersonalModerationAlert(null);
+    setKarmaUpdate(null);
     
     // Immediately join queue again
     setStatus("searching");
@@ -315,15 +340,21 @@ export default function useWebRTC() {
   };
 
   // Emit moderation violation to backend (called by moderation system)
-  const emitModerationViolation = (violationType, nsfwScore) => {
+  const emitModerationViolation = (violationType, nsfwScore, severity = "warning") => {
     if (socketRef.current && currentRoomId.current) {
       socketRef.current.emit("moderation-violation", {
         roomId: currentRoomId.current,
         violationType,
         nsfwScore,
+        severity,
       });
     }
   };
+
+  // Clear alerts (for dismissing)
+  const clearPeerModerationAlert = () => setPeerModerationAlert(null);
+  const clearPersonalModerationAlert = () => setPersonalModerationAlert(null);
+  const clearKarmaUpdate = () => setKarmaUpdate(null);
 
   return {
     localVideoRef,
@@ -339,6 +370,12 @@ export default function useWebRTC() {
     isMuted,
     isVideoOff,
     peerDisconnected,
+    peerModerationAlert,
+    personalModerationAlert,
+    karmaUpdate,
+    clearPeerModerationAlert,
+    clearPersonalModerationAlert,
+    clearKarmaUpdate,
     toggleMute,
     toggleVideo,
   };

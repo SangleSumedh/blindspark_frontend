@@ -45,6 +45,12 @@ export default function Home() {
     isMuted,
     isVideoOff,
     peerDisconnected,
+    peerModerationAlert,
+    personalModerationAlert,
+    karmaUpdate,
+    clearPeerModerationAlert,
+    clearPersonalModerationAlert,
+    clearKarmaUpdate,
     matchData,
     toggleMute,
     toggleVideo,
@@ -73,29 +79,35 @@ export default function Home() {
 
   const [debugTextInput, setDebugTextInput] = useState("");
 
-  // Auto-report and skip when VIDEO moderation terminates
-  const hasTerminated = useRef(false);
+  // Emit violation at EVERY escalation step (not just terminate)
+  const lastVideoSeverity = useRef(null);
   useEffect(() => {
-    if (moderationState === "terminated" && !hasTerminated.current) {
-      hasTerminated.current = true;
-      emitModerationViolation("nsfw_auto_terminate", nsfwScore);
-      reportPeer();
+    const severityMap = { warning: "warning", blurred: "blur", terminated: "terminate" };
+    const severity = severityMap[moderationState];
+    if (severity && severity !== lastVideoSeverity.current) {
+      lastVideoSeverity.current = severity;
+      const violationType = severity === "terminate" ? "nsfw_auto_terminate" : `nsfw_${severity}`;
+      emitModerationViolation(violationType, nsfwScore, severity);
+      if (severity === "terminate") reportPeer();
     }
     if (moderationState === "clean") {
-      hasTerminated.current = false;
+      lastVideoSeverity.current = null;
     }
   }, [moderationState, nsfwScore, emitModerationViolation, reportPeer]);
 
-  // Auto-report and skip when AUDIO moderation terminates
-  const hasAudioTerminated = useRef(false);
+  // Emit violation at EVERY audio escalation step
+  const lastAudioSeverity = useRef(null);
   useEffect(() => {
-    if (audioModerationState === "terminated" && !hasAudioTerminated.current) {
-      hasAudioTerminated.current = true;
-      emitModerationViolation("audio_abuse_auto_terminate", abuseScore);
-      reportPeer();
+    const severityMap = { warning: "warning", muted: "mute", terminated: "terminate" };
+    const severity = severityMap[audioModerationState];
+    if (severity && severity !== lastAudioSeverity.current) {
+      lastAudioSeverity.current = severity;
+      const violationType = severity === "terminate" ? "audio_abuse_auto_terminate" : `audio_${severity}`;
+      emitModerationViolation(violationType, abuseScore, severity);
+      if (severity === "terminate") reportPeer();
     }
     if (audioModerationState === "clean") {
-      hasAudioTerminated.current = false;
+      lastAudioSeverity.current = null;
     }
   }, [audioModerationState, abuseScore, emitModerationViolation, reportPeer]);
 
@@ -105,6 +117,14 @@ export default function Home() {
       toggleMute();
     }
   }, [audioModerationState]);
+
+  // Refresh profile when karma is updated by the server
+  useEffect(() => {
+    if (karmaUpdate) {
+      refreshProfile();
+      clearKarmaUpdate();
+    }
+  }, [karmaUpdate, refreshProfile, clearKarmaUpdate]);
 
   const handleSkipWithReset = (profile) => {
     resetModeration();
@@ -257,7 +277,7 @@ export default function Home() {
 
               {/* Remote Video (Main) */}
               <div className="flex-1 rounded-3xl overflow-hidden border border-zinc-800 bg-black relative shadow-2xl group">
-                <div className={`w-full h-full transition-all duration-500 ${moderationState === 'blurred' ? 'blur-[30px] scale-105' : ''}`}>
+                <div className={`w-full h-full transition-all duration-500 ${moderationState === 'blurred' || (peerModerationAlert && (peerModerationAlert.severity === 'blur' || peerModerationAlert.severity === 'mute' || peerModerationAlert.severity === 'terminate')) ? 'blur-[30px] scale-105' : ''}`}>
                   <VideoTile videoRef={remoteVideoRef} />
                 </div>
                 
@@ -266,6 +286,10 @@ export default function Home() {
                   moderationState={moderationState} 
                   moderationMessage={moderationMessage}
                   onSkip={() => handleSkipWithReset(userProfile)}
+                  peerModerationAlert={peerModerationAlert}
+                  onDismissAlert={clearPeerModerationAlert}
+                  personalModerationAlert={personalModerationAlert}
+                  onDismissPersonalAlert={clearPersonalModerationAlert}
                 />
 
                 {/* Audio Moderation Overlay */}

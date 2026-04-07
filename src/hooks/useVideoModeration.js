@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 const SCAN_INTERVAL_MS = 5000; // 5 s between ticks
 const NSFW_THRESHOLD = 0.85;   // Porn + Hentai combined probability
 const NSFW_SINGLE_CLASS_MIN = 0.50; // At least one class must exceed this individually
-const NO_FACE_TIMEOUT_MS = 10000; // 10 s continuous absence
+const NO_FACE_TIMEOUT_MS = 5000; // 5 s continuous absence
 const COOLDOWN_MS = 30000;     // 30 s clean frames to reset strikes
 const STRIKE_WARNING = 1;
 const STRIKE_BLUR = 2;
