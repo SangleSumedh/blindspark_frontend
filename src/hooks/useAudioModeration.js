@@ -7,7 +7,7 @@ const PROCESS_INTERVAL_MS = 4000; // 4 s between transcript processing cycles
 const COOLDOWN_MS = 30000;        // 30 s clean to reset strikes
 const SCORE_THRESHOLD = 3;        // Cumulative abuse score to trigger a strike
 const REGEX_SCORE = 2;            // Score weight for regex-matched abuse
-const AI_TOXICITY_SCORE = 1;      // Score weight for AI-detected toxicity
+const AI_TOXICITY_SCORE = 2;      // Score weight for AI-detected toxicity
 const AI_TOXICITY_THRESHOLD = 0.8; // Confidence threshold for toxicity model
 const STRIKE_WARNING = 1;
 const STRIKE_MUTE = 2;
@@ -56,7 +56,7 @@ const ABUSE_PATTERNS = [
   /\bi.*will.*kill.*you/i,
   /\brape/i,
 
-  // Hinglish
+  // Hinglish + Phonetic mis-transcriptions (English STT often mishears these)
   /\bm+a+d+a+r+c+h+o+d+/i,
   /\bb+h+o+s+(a|d)+[di]*k*e*/i,    // bhosdike / bhosadi
   /\bc+h+u+t+i+y+a*/i,             // chutiya
@@ -69,6 +69,16 @@ const ABUSE_PATTERNS = [
   /\bk+u+t+t+[aei]+/i,            // kutta / kutte / kutti
   /\bc+h+a+m+a+r+/i,              // casteist slur
   /\bj+h+a+a+n+t+/i,              // jhaant
+
+  // Phonetic approximations for common English STT mis-hearings of Hinglish
+  /\bbenth? ?(ch?|k)o[ad]/i,       // bhenchod -> "benth code", "ben cho"
+  /\bben(ch|d) ?(old|cold|code)/i,  // bhenchod -> "bench old", "bench cold", "bench code"
+  /\bch?oo?t+(ia|y+a)/i,           // chutiya -> "chootea"
+  /\bchoose? ?the? ?area/i,        // chutiya -> "choose the area"
+  /\blove? ?day+/i,                // lawda -> "love day"
+  /\bloud ?ah+/i,                  // lawda -> "loud ah"
+  /\bg?u+nd+a/i,                   // gaand -> "gunda" (sometimes misheard)
+  /\bmother ?ch?o+d/i,             // madarchod -> "mother chod"
 ];
 
 /**
@@ -89,11 +99,12 @@ function normalizeText(raw) {
   // Remove non-alphanumeric except spaces
   text = text.replace(/[^a-z0-9\s]/g, "");
 
-  // Collapse single-letter spacing ("f u c k" → "fuck")
-  // Matches sequences of single letters separated by spaces
-  text = text.replace(/\b([a-z])\s+(?=[a-z]\b)/g, "$1");
+  // Collapse single-letter spacing ("f u c k" -> "fuck")
+  // Matches sequences of single letters separated by any amount of whitespace
+  // Example: "f  u  c  k" -> "fuck"
+  text = text.replace(/\b([a-z])[\s]+(?=[a-z]\b)/g, "$1");
 
-  // Normalize multiple spaces
+  // Normalize multiple spaces and trim
   text = text.replace(/\s+/g, " ").trim();
 
   return text;
@@ -128,7 +139,8 @@ export default function useAudioModeration(stream, connected) {
   // ─── Refs (mutable, no re-render cost) ─────────────────────
   const toxicityModelRef = useRef(null);
   const recognitionRef = useRef(null);
-  const transcriptBufferRef = useRef("");    // Accumulated raw transcript
+  const transcriptBufferRef = useRef("");    // Accumulated finalized transcripts
+  const interimBufferRef = useRef("");       // Current non-finalized speech
   const strikeCountRef = useRef(0);
   const cumulativeScoreRef = useRef(0);      // Running score within current cycle
   const lastCleanRef = useRef(null);         // Timestamp of last clean cycle
@@ -187,11 +199,15 @@ export default function useAudioModeration(stream, connected) {
 
   // ─── Process Transcript Buffer ────────────────────────────
   const processTranscript = useCallback(async () => {
-    const rawText = transcriptBufferRef.current.trim();
+    const finalizedText = transcriptBufferRef.current.trim();
+    const interimText = interimBufferRef.current.trim();
+    const rawText = (finalizedText + " " + interimText).trim();
+    
     if (!rawText) return;
 
-    // Clear buffer immediately (non-blocking)
+    // Clear finalized buffer immediately
     transcriptBufferRef.current = "";
+    // Note: Do NOT clear interimBuffer here, it will be updated by onresult
 
     const normalized = normalizeText(rawText);
     if (DEBUG) console.log("[AudioMod] Processing:", normalized);
@@ -278,35 +294,61 @@ export default function useAudioModeration(stream, connected) {
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = false; // Only final results → less noise
+    recognition.interimResults = true; // Enabled for real-time reactivity
     recognition.lang = "en-US";
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event) => {
-      // Accumulate new results into the buffer
+      // 1. Process NEW finalized results from resultIndex
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           const transcript = event.results[i][0].transcript;
           transcriptBufferRef.current += " " + transcript;
-          if (DEBUG) console.log("[AudioMod] [STT]", transcript);
         }
+      }
+
+      // 2. Recalculate the entire current interim buffer
+      // In continuous mode, interim results can span multiple segments
+      let fullInterim = "";
+      for (let i = 0; i < event.results.length; i++) {
+        if (!event.results[i].isFinal) {
+          fullInterim += " " + event.results[i][0].transcript;
+        }
+      }
+      interimBufferRef.current = fullInterim;
+
+      if (DEBUG) {
+        console.log("[AudioMod] [Live STT]:", (transcriptBufferRef.current + " " + interimBufferRef.current).trim());
+      }
+
+      if (DEBUG && (event.results[event.results.length - 1].isFinal)) {
+        console.log("[AudioMod] [STT-Segment-Finalized]:", event.results[event.results.length - 1][0].transcript);
       }
     };
 
     recognition.onerror = (event) => {
-      // "no-speech" and "aborted" are expected and non-fatal
+      // "no-speech", "aborted", and "network" are transient / non-fatal
+      // "network" = browser can't reach Google's STT servers (unstable connection, VPN, rate-limit)
       if (event.error === "no-speech" || event.error === "aborted") return;
+      if (event.error === "network") {
+        if (DEBUG) console.warn("[AudioMod] Network error (transient) — will auto-retry");
+        return;
+      }
       console.error("[AudioMod] Speech recognition error:", event.error);
     };
 
     recognition.onend = () => {
       // Auto-restart if we're still supposed to be listening
       if (isListeningRef.current) {
-        try {
-          recognition.start();
-        } catch {
-          // Ignore — may already be starting
-        }
+        // Small delay to avoid hammering the API after transient errors
+        setTimeout(() => {
+          if (!isListeningRef.current) return;
+          try {
+            recognition.start();
+          } catch {
+            // Ignore — may already be starting
+          }
+        }, 500);
       }
     };
 
