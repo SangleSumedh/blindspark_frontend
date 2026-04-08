@@ -378,9 +378,16 @@ export default function useAudioModeration(stream, connected) {
   }, []);
 
   // ─── Main Processing Loop ─────────────────────────────────
+  // Use a ref to track moderation state inside the effect without
+  // making it a dependency (avoids tearing down recognition on every state change)
+  const audioModerationStateRef = useRef(audioModerationState);
   useEffect(() => {
-    if (!connected || audioModerationState === "terminated") {
-      // Stop everything when disconnected or terminated
+    audioModerationStateRef.current = audioModerationState;
+  }, [audioModerationState]);
+
+  useEffect(() => {
+    if (!connected) {
+      // Stop everything when disconnected
       stopRecognition();
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -394,6 +401,8 @@ export default function useAudioModeration(stream, connected) {
 
     // Start periodic transcript processing
     intervalRef.current = setInterval(() => {
+      // Skip processing if terminated (but keep the interval alive for cleanup simplicity)
+      if (audioModerationStateRef.current === "terminated") return;
       processTranscript();
     }, PROCESS_INTERVAL_MS);
 
@@ -404,7 +413,18 @@ export default function useAudioModeration(stream, connected) {
         intervalRef.current = null;
       }
     };
-  }, [connected, audioModerationState, startRecognition, stopRecognition, processTranscript]);
+  }, [connected, startRecognition, stopRecognition, processTranscript]);
+
+  // ─── Stop recognition on termination (separate effect) ────
+  useEffect(() => {
+    if (audioModerationState === "terminated") {
+      stopRecognition();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+  }, [audioModerationState, stopRecognition]);
 
   // ─── Reset (between matches) ──────────────────────────────
   const resetAudioModeration = useCallback(() => {
