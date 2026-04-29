@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { io } from "socket.io-client";
+import { useSocket } from "@/context/SocketContext";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export default function useWebRTC() {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  const socketRef = useRef(null);
+  const socket = useSocket();
+  const socketRef = useRef(socket);
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
   const roleRef = useRef(null);
@@ -55,7 +56,11 @@ export default function useWebRTC() {
   };
 
   useEffect(() => {
-    socketRef.current = io(BACKEND_URL);
+    socketRef.current = socket;
+  }, [socket]);
+
+  useEffect(() => {
+    if (!socketRef.current) return;
 
     // 1. Initial Match - Setup PC immediately
     socketRef.current.on("matched", async ({ roomId, commonInterests, score, peerProfile }) => {
@@ -194,10 +199,24 @@ export default function useWebRTC() {
     });
 
     return () => {
-      socketRef.current?.disconnect();
+      socketRef.current?.off("matched");
+      socketRef.current?.off("waiting");
+      socketRef.current?.off("role");
+      socketRef.current?.off("ready");
+      socketRef.current?.off("offer");
+      socketRef.current?.off("answer");
+      socketRef.current?.off("ice-candidate");
+      socketRef.current?.off("peer-disconnected");
+      socketRef.current?.off("peer-moderation-alert");
+      socketRef.current?.off("system-warning-alert");
+      socketRef.current?.off("karma-updated");
+      socketRef.current?.off("session-ending-soon");
+      socketRef.current?.off("session-timeout");
+      socketRef.current?.off("consent-ack");
+      socketRef.current?.off("connection-saved");
       cleanupPC();
     };
-  }, []);
+  }, [socketRef.current]);
 
   /* --- Helper Functions --- */
 
@@ -389,9 +408,9 @@ export default function useWebRTC() {
   };
 
   // Emit consent to save connection
-  const emitConsent = () => {
+  const emitConsent = (displayName) => {
     if (socketRef.current && currentRoomId.current) {
-      socketRef.current.emit("consent-to-connect");
+      socketRef.current.emit("consent-to-connect", { displayName });
       setConsentSent(true);
     }
   };

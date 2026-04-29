@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import useWebRTC from "@/hooks/WebRTC";
 import useVideoModeration from "@/hooks/useVideoModeration";
 import useAudioModeration from "@/hooks/useAudioModeration";
+import { useAuth } from "@/context/AuthContext";
+import { useChat } from "@/hooks/useChat";
 import VideoTile from "@/components/videoTile";
 import ModerationOverlay from "@/components/ModerationOverlay";
 import AudioModerationOverlay from "@/components/AudioModerationOverlay";
-import { useAuth } from "@/context/AuthContext";
 import LoginPage from "@/components/LoginPage";
 import ReportModal from "@/components/ReportModal";
 import ProfileSetup from "@/components/ProfileSetup";
@@ -24,13 +26,15 @@ import {
   UserMinus,
   AlertCircle,
   MessageSquareWarning,
-  SendHorizonal
+  SendHorizonal,
+  MessageSquare
 } from "lucide-react";
 
 const MODERATION_DEBUG = process.env.NEXT_PUBLIC_MODERATION_DEBUG === "true";
 
 export default function Home() {
   const { user, userProfile, loading: authLoading, logout, refreshProfile } = useAuth();
+  const { totalUnread } = useChat(user?.uid);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const {
     localVideoRef,
@@ -59,6 +63,7 @@ export default function Home() {
     connectionSaved,
     sessionTimedOut,
     emitConsent,
+    setSessionEndingSoon
   } = useWebRTC();
 
   const {
@@ -154,8 +159,10 @@ export default function Home() {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    if (connected) {
-      setTimeLeft(300);
+    if (connected && !connectionSaved) {
+      // Set to 300 (or whatever initial value) only if it's the start of a new connection
+      // To avoid resetting to 300 when connectionSaved changes, we only reset when connected becomes true initially
+      // Actually, since we're using a ref, we can just clear the interval if connectionSaved becomes true.
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -165,12 +172,14 @@ export default function Home() {
           return prev - 1;
         });
       }, 1000);
+    } else if (connected && connectionSaved) {
+      clearInterval(timerRef.current);
     } else {
       clearInterval(timerRef.current);
       setTimeLeft(300);
     }
     return () => clearInterval(timerRef.current);
-  }, [connected]);
+  }, [connected, connectionSaved]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -237,7 +246,17 @@ export default function Home() {
               <span className="text-sm font-bold text-orange-400">{userProfile.displayName}</span>
               <span className="text-[10px] text-zinc-400 uppercase tracking-widest">{userProfile.karma} Karma</span>
             </div>
-            <button onClick={logout} className="text-zinc-400 hover:text-white transition-colors">
+            
+            <Link href="/chat" className="relative text-zinc-400 hover:text-orange-400 transition-colors mt-1">
+              <MessageSquare size={20} />
+              {totalUnread > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-zinc-900">
+                  {totalUnread > 99 ? '99+' : totalUnread}
+                </span>
+              )}
+            </Link>
+
+            <button onClick={logout} className="text-zinc-400 hover:text-red-400 transition-colors mt-1" title="Logout">
               <LogOut size={20} />
             </button>
           </div>
@@ -283,13 +302,15 @@ export default function Home() {
                <div className="h-6 w-[1px] bg-white/10 hidden md:block" />
 
                <div className={`text-[11px] font-mono font-black px-2.5 py-1 rounded-lg tabular-nums ${
-                 timeLeft <= 30
-                   ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
-                   : timeLeft <= 60
-                     ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20"
-                     : "bg-white/5 text-zinc-400 border border-white/10"
+                 connectionSaved 
+                   ? "bg-green-500/20 text-green-400 border border-green-500/20"
+                   : timeLeft <= 30
+                     ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
+                     : timeLeft <= 60
+                       ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20"
+                       : "bg-white/5 text-zinc-400 border border-white/10"
                }`}>
-                 ⏱ {formatTime(timeLeft)}
+                 {connectionSaved ? "∞ Connected" : `⏱ ${formatTime(timeLeft)}`}
                </div>
             </div>
           )}
@@ -371,9 +392,10 @@ export default function Home() {
                       </div>
 
                       <h3 className="text-xl font-bold mb-2">Enjoying the conversation?</h3>
-                      <p className="text-sm text-zinc-400 mb-6">
+                      <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
                         Session ends in <span className={`font-mono font-bold ${timeLeft <= 10 ? "text-red-400" : "text-orange-400"}`}>{formatTime(timeLeft)}</span>.
-                        Stay connected?
+                        <br/><br/>
+                        Stay connected to continue this video call and unlock text messaging with them later!
                       </p>
 
                       {consentSent ? (
@@ -384,7 +406,7 @@ export default function Home() {
                       ) : (
                         <div className="flex gap-3">
                           <Button
-                            onClick={emitConsent}
+                            onClick={() => emitConsent(userProfile.displayName)}
                             className="flex-1 shadow-orange-500/20"
                           >
                             Yes, stay!
