@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSocket } from "@/context/SocketContext";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const DEBUG = process.env.NEXT_PUBLIC_MODERATION_DEBUG === "true";
 
 export default function useWebRTC() {
   const localVideoRef = useRef(null);
@@ -242,6 +243,45 @@ export default function useWebRTC() {
       return stream;
     } catch (err) {
       console.error("Media Error:", err);
+      
+      // In debug mode, we can proceed with a dummy stream to allow the WebRTC handshake to complete
+      if (DEBUG) {
+        console.warn("[DEBUG] Creating dummy black stream to allow connection testing");
+        const canvas = document.createElement("canvas");
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#09090b"; // Match our zinc-950/background
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw some "Debug" text so user knows it's dummy
+        ctx.font = "24px Arial";
+        ctx.fillStyle = "#3f3f46";
+        ctx.textAlign = "center";
+        ctx.fillText("DEBUG MODE: NO CAMERA", 320, 240);
+        
+        const stream = canvas.captureStream(10); // 10 FPS
+        
+        // Add a silent audio track so negotiation still happens for audio
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioCtx.createOscillator();
+          const dst = audioCtx.createMediaStreamDestination();
+          oscillator.connect(dst);
+          // Don't start the oscillator, we just want the track
+          const silentTrack = dst.stream.getAudioTracks()[0];
+          if (silentTrack) stream.addTrack(silentTrack);
+        } catch (e) {
+          console.warn("Failed to create dummy audio track", e);
+        }
+
+        localStreamRef.current = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+        return stream;
+      }
+      
       throw err;
     }
   }
@@ -318,8 +358,17 @@ export default function useWebRTC() {
         socketRef.current.emit("join-queue", { userProfile });
       }
     } catch (error) {
-      setStatus("idle");
-      alert("Please enable camera access to continue.");
+      console.error("Media initialization failed:", error);
+      // In debug mode, we allow joining even without a camera
+      if (DEBUG) {
+        console.warn("[DEBUG] Proceeding without camera/audio due to DEBUG mode");
+        if (socketRef.current) {
+          socketRef.current.emit("join-queue", { userProfile });
+        }
+      } else {
+        setStatus("idle");
+        alert("Please enable camera access to continue.");
+      }
     }
   };
 

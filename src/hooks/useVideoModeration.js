@@ -162,7 +162,8 @@ export default function useVideoModeration(remoteVideoRef, connected) {
           noFaceSinceRef.current = Date.now();
         } else if (Date.now() - noFaceSinceRef.current > NO_FACE_TIMEOUT_MS) {
           // Only show no-face warning if we're not already in a worse state
-          if (moderationState === "clean") {
+          // AND only if we are not in debug mode (allows testing without camera)
+          if (moderationState === "clean" && !DEBUG) {
             setModerationState("warning");
             setModerationMessage("No face detected. Please ensure your face is visible.");
           }

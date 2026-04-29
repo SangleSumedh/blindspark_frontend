@@ -20,7 +20,8 @@ import {
   Camera, 
   Dog, 
   Laugh,
-  Rocket
+  Rocket,
+  X
 } from "lucide-react";
 
 const INTERESTS_LIST = [
@@ -71,9 +72,8 @@ export default function ProfileSetup({ onComplete }) {
       // 2. Sanitize Inputs
       const sanitizedDisplayName = displayName.trim().substring(0, 20); // Max 20 chars
       const sanitizedInterests = selectedInterests
-        .map(i => i.trim().substring(0, 20)) 
-        .filter(i => i.length > 0)
-        .slice(0, 10); 
+        .map(i => i.toLowerCase().trim()) 
+        .filter(i => i.length > 0); 
 
       // 3. Save to Firestore
       await setDoc(doc(db, "users", user.uid), {
@@ -149,24 +149,36 @@ export default function ProfileSetup({ onComplete }) {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <label className="text-sm font-medium text-zinc-300">Interests</label>
-                <span className="text-xs text-zinc-500">{selectedInterests.length}/5 selected</span>
+                <span className={`text-xs font-bold px-2 py-1 rounded-lg ${selectedInterests.length >= 5 ? "bg-orange-500/20 text-orange-400" : "text-zinc-500"}`}>{selectedInterests.length}/5 selected</span>
               </div>
+              {selectedInterests.length >= 5 && (
+                <p className="text-[11px] text-zinc-500">Tap a selected interest to remove it, then pick a new one.</p>
+              )}
               <div className="flex flex-wrap gap-2">
-                {INTERESTS_LIST.map(({ label, icon: Icon }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => toggleInterest(label)}
-                    className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border ${
-                      selectedInterests.includes(label)
-                        ? "bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-[0_0_10px_rgba(249,115,22,0.2)]"
-                        : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5 mr-1.5" />
-                    {label}
-                  </button>
-                ))}
+                {INTERESTS_LIST.map(({ label, icon: Icon }) => {
+                  const isSelected = selectedInterests.includes(label);
+                  const isMaxed = selectedInterests.length >= 5 && !isSelected;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => toggleInterest(label)}
+                      disabled={isMaxed}
+                      className={`flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border ${
+                        isSelected
+                          ? "bg-orange-500/20 border-orange-500/50 text-orange-300 shadow-[0_0_10px_rgba(249,115,22,0.2)] hover:bg-red-500/15 hover:border-red-500/40 hover:text-red-300"
+                          : "bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                      } ${isMaxed ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}`}
+                    >
+                      {isSelected ? (
+                        <X className="w-3.5 h-3.5 mr-1.5" />
+                      ) : (
+                        <Icon className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </CardContent>

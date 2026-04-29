@@ -46,7 +46,7 @@ export default function ModerationOverlay({ moderationState, moderationMessage, 
   }, [personalModerationAlert, onDismissPersonalAlert]);
 
   // ── Victim-side overlays (peer was flagged) ─────────────────
-  if (peerModerationAlert && !alertDismissed) {
+  if (peerModerationAlert && !alertDismissed && (process.env.NEXT_PUBLIC_MODERATION_DEBUG !== "true")) {
     const { severity, message } = peerModerationAlert;
 
     // Victim: Peer terminated → full-screen overlay
@@ -104,7 +104,7 @@ export default function ModerationOverlay({ moderationState, moderationMessage, 
   }
 
   // ── Network Violator-side overlays (peer flagged us) ─────────
-  if (personalModerationAlert && !personalAlertDismissed) {
+  if (personalModerationAlert && !personalAlertDismissed && (process.env.NEXT_PUBLIC_MODERATION_DEBUG !== "true")) {
     const { severity, message } = personalModerationAlert;
     
     // We only display a toast warning here so we aren't blinding our own screen 
@@ -129,7 +129,7 @@ export default function ModerationOverlay({ moderationState, moderationMessage, 
   }
 
   // ── Violator-side overlays (own violations) ─────────────────
-  if (moderationState === "clean") return null;
+  if (moderationState === "clean" || (process.env.NEXT_PUBLIC_MODERATION_DEBUG === "true")) return null;
 
   // ─── Warning Popup ──────────────────────────────────────────
   if (moderationState === "warning" && !dismissed) {

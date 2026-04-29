@@ -13,7 +13,7 @@ import VideoTile from "@/components/videoTile";
 import ModerationOverlay from "@/components/ModerationOverlay";
 import AudioModerationOverlay from "@/components/AudioModerationOverlay";
 import LoginPage from "@/components/LoginPage";
-import NavLogo from "@/components/NavLogo";
+import Navbar from "@/components/Navbar";
 import ReportModal from "@/components/ReportModal";
 import ProfileSetup from "@/components/ProfileSetup";
 import { Card } from "@/components/ui/Card";
@@ -25,19 +25,39 @@ import {
   LogOut, 
   SkipForward, 
   FlaskConical, 
-  Zap,
   UserMinus,
   AlertCircle,
   MessageSquareWarning,
   SendHorizonal,
-  MessageSquare
+  Clock,
+  Zap,
+  Move
 } from "lucide-react";
+
+const INTEREST_EMOJIS = {
+  music: "🎵",
+  gaming: "🎮",
+  tech: "💻",
+  art: "🎨",
+  travel: "✈️",
+  movies: "🎬",
+  reading: "📚",
+  sports: "🏆",
+  food: "🍕",
+  photography: "📸",
+  pets: "🐾",
+  memes: "😂",
+  coding: "💻",
+  fitness: "💪",
+  fashion: "👗",
+  nature: "🌿",
+  crypto: "🪙"
+};
 
 const MODERATION_DEBUG = process.env.NEXT_PUBLIC_MODERATION_DEBUG === "true";
 
 export default function Home() {
   const { user, userProfile, loading: authLoading, logout, refreshProfile } = useAuth();
-  const { totalUnread } = useChat(user?.uid);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const {
     localVideoRef,
@@ -224,99 +244,14 @@ export default function Home() {
         <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-red-900/10 blur-[120px] transition-all duration-1000 ${status === 'matched' ? 'bg-red-600/20' : ''}`} />
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto p-4 md:p-6 flex flex-col h-screen">
-        
-        {/* Header (Glass Pill) */}
-        <header className="flex justify-between items-center mb-6 glass rounded-full px-6 py-3 mx-4 md:mx-0">
-          <div className="flex items-center gap-3">
-            <NavLogo />
-            <div className="flex items-center gap-2">
-              <div 
-                className={`h-2.5 w-2.5 rounded-full transition-all duration-500 shadow-sm ${
-                  peerDisconnected ? "bg-red-500 shadow-[0_0_8px_#ef4444]" :
-                  status === 'matched' ? "bg-green-500 shadow-[0_0_8px_#22c55e]" :
-                  (status === 'searching' || status === 'connecting') ? "bg-yellow-500 shadow-[0_0_8px_#eab308] animate-pulse" :
-                  "bg-yellow-500/50 shadow-[0_0_4px_#eab30855]" // Standby
-                }`}
-                title={peerDisconnected ? "Peer Disconnected" : status === 'matched' ? "Live" : status === 'searching' ? "Searching..." : status === 'connecting' ? "Connecting..." : "Standby"}
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end">
-              <span className="text-sm font-bold text-orange-400">{userProfile.displayName}</span>
-              <span className="text-[10px] text-zinc-400 uppercase tracking-widest">{userProfile.karma} Karma</span>
-            </div>
-            
-            <Link href="/chat" className="relative text-zinc-400 hover:text-orange-400 transition-colors mt-1">
-              <MessageSquare size={20} />
-              {totalUnread > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-zinc-900">
-                  {totalUnread > 99 ? '99+' : totalUnread}
-                </span>
-              )}
-            </Link>
+      <Navbar status={status} peerDisconnected={peerDisconnected} />
 
-            <button onClick={logout} className="text-zinc-400 hover:text-red-400 transition-colors mt-1" title="Logout">
-              <LogOut size={20} />
-            </button>
-          </div>
-        </header>
+      <div className="relative z-10 w-full max-w-6xl mx-auto p-6 md:p-12 flex-1 flex flex-col">
+
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col justify-center items-center w-full relative">
+        <div className={`flex-1 flex flex-col w-full relative ${status === 'idle' ? 'justify-center items-center' : ''}`}>
           
-          {/* Status Badge */}
-          {/* Match Info Popup (Corner) */}
-          {connected && matchData && (
-            <div className="fixed top-28 left-6 md:left-12 z-40 glass-panel px-4 py-2.5 rounded-2xl flex flex-col md:flex-row items-center gap-3 animate-fade-in-up border-orange-500/20 shadow-xl overflow-hidden">
-               <div className="flex flex-col items-center md:items-start leading-tight">
-                 <div className="text-[9px] text-zinc-500 uppercase font-black tracking-[0.2em]">Connected</div>
-                 <div className="text-sm font-bold text-orange-400">{matchData.peerProfile?.displayName || "Anonymous"}</div>
-               </div>
-               
-               <div className="h-6 w-[1px] bg-white/10 hidden md:block" />
-
-               <div className="flex items-center gap-3">
-                 {/* Match Score */}
-                 {matchData.score != null && (
-                   <div className={`text-[10px] font-black px-2 py-1 rounded-lg ${
-                     matchData.score >= 70 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/20' :
-                     matchData.score >= 40 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20' :
-                     'bg-red-500/20 text-red-400 border border-red-500/20'
-                   }`}>
-                     {matchData.score}%
-                   </div>
-                 )}
-
-                 {matchData.commonInterests?.length > 0 && (
-                   <div className="flex gap-1.5 font-bold">
-                     {matchData.commonInterests.slice(0, 2).map(i => (
-                       <div key={i} className="bg-white/5 border border-white/10 px-2 py-1 rounded-lg text-[9px] text-zinc-300 uppercase tracking-widest whitespace-nowrap">
-                         {i}
-                       </div>
-                     ))}
-                   </div>
-                 )}
-               </div>
-
-               <div className="h-6 w-[1px] bg-white/10 hidden md:block" />
-
-               <div className={`text-[11px] font-mono font-black px-2.5 py-1 rounded-lg tabular-nums ${
-                 connectionSaved 
-                   ? "bg-green-500/20 text-green-400 border border-green-500/20"
-                   : timeLeft <= 30
-                     ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
-                     : timeLeft <= 60
-                       ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20"
-                       : "bg-white/5 text-zinc-400 border border-white/10"
-               }`}>
-                 {connectionSaved ? "∞ Connected" : `⏱ ${formatTime(timeLeft)}`}
-               </div>
-            </div>
-          )}
-
           {status === "idle" ? (
             <Card className="max-w-xl w-full text-center py-8 md:py-12 px-6 md:px-8 border-zinc-800 bg-zinc-900/50">
               <div className="w-20 h-20 md:w-24 md:h-24 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-orange-500/20">
@@ -342,7 +277,7 @@ export default function Home() {
                </Button>
             </Card>
           ) : (
-            <div className="w-full h-full max-h-[85vh] md:max-h-[70vh] flex flex-col md:flex-row gap-4 relative">
+            <div className="w-full flex-1 flex flex-col md:flex-row gap-4 relative min-h-0 py-4">
               
               {/* Local Video (Floating & Draggable) */}
                <Draggable 
@@ -353,17 +288,63 @@ export default function Home() {
                     <VideoTile videoRef={localVideoRef} muted />
                     <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-bold text-zinc-300 pointer-events-none">YOU</div>
                     {/* Hover Hint */}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                      <span className="text-white text-xs font-bold drop-shadow-md">✋ Drag me</span>
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none gap-1.5">
+                      <Move size={14} className="text-white drop-shadow-md" />
+                      <span className="text-white text-xs font-bold drop-shadow-md">Drag me</span>
                     </div>
                   </div>
                </Draggable>
 
               {/* Remote Video (Main) */}
-              <div className="flex-1 rounded-3xl overflow-hidden border border-zinc-800 bg-black relative shadow-2xl group">
+              <div className="flex-1 rounded-3xl overflow-hidden border border-zinc-800 bg-black relative shadow-2xl group aspect-video self-center max-h-full">
                 <div className={`w-full h-full transition-all duration-500 ${moderationState === 'blurred' || (peerModerationAlert && (peerModerationAlert.severity === 'blur' || peerModerationAlert.severity === 'mute' || peerModerationAlert.severity === 'terminate')) ? 'blur-[30px] scale-105' : ''}`}>
                   <VideoTile videoRef={remoteVideoRef} />
                 </div>
+                
+                {/* HUD Elements (Inside Video Container) */}
+                {connected && matchData && (
+                  <>
+                    {/* Top Left: User Info & Shared Vibes */}
+                    <div className="absolute top-4 left-4 z-40 flex flex-col gap-2 animate-fade-in">
+                      <div className="glass-panel px-4 py-2.5 rounded-2xl border border-orange-500/20 shadow-xl overflow-hidden flex items-center gap-3">
+                         <div className="flex flex-col leading-tight">
+                           <div className="text-[9px] text-zinc-500 uppercase font-black tracking-[0.2em]">Connected</div>
+                           <div className="text-sm font-bold text-orange-400">{matchData.peerProfile?.displayName || "Anonymous"}</div>
+                         </div>
+                      </div>
+                      
+                      {/* Interest Emojis & Match Score */}
+                      <div className="flex items-center gap-2 px-1">
+                        {matchData.score != null && (
+                          <div className="text-[10px] font-black text-orange-400 bg-orange-500/20 px-2 py-0.5 rounded-lg border border-orange-500/20">
+                            {matchData.score}%
+                          </div>
+                        )}
+                        <div className="flex items-center -space-x-1">
+                          {matchData.commonInterests?.map(i => (
+                            <span key={i} title={i} className="text-lg drop-shadow-sm filter grayscale-[0.2] hover:grayscale-0 transition-all cursor-help">
+                              {INTEREST_EMOJIS[i.toLowerCase()] || "✨"}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Top Right: Session Timer */}
+                    <div className="absolute top-4 right-4 z-40 animate-fade-in">
+                      <div className={`glass-panel px-4 py-2.5 rounded-2xl font-mono font-black tabular-nums border shadow-xl flex items-center gap-2 ${
+                        connectionSaved 
+                          ? "bg-green-500/20 text-green-400 border-green-500/20"
+                          : timeLeft <= 30
+                            ? "bg-red-500/20 text-red-400 border-red-500/30 animate-pulse"
+                            : "bg-black/40 text-zinc-300 border-white/10"
+                      }`}>
+                        <Clock size={14} className={timeLeft <= 30 ? "animate-pulse" : ""} />
+                        {connectionSaved ? "∞" : formatTime(timeLeft)}
+                      </div>
+                    </div>
+                  </>
+                )}
                 
                 {/* Video Moderation Overlay */}
                 <ModerationOverlay 
