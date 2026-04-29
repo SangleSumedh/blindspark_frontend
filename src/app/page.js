@@ -54,6 +54,11 @@ export default function Home() {
     matchData,
     toggleMute,
     toggleVideo,
+    sessionEndingSoon,
+    consentSent,
+    connectionSaved,
+    sessionTimedOut,
+    emitConsent,
   } = useWebRTC();
 
   const {
@@ -142,6 +147,35 @@ export default function Home() {
 
   const handleStart = async () => {
     await findMatch(userProfile);
+  };
+
+  // ── Session Countdown Timer ──
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (connected) {
+      setTimeLeft(300);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      clearInterval(timerRef.current);
+      setTimeLeft(300);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [connected]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   if (authLoading) {
@@ -245,6 +279,18 @@ export default function Home() {
                    </div>
                  )}
                </div>
+
+               <div className="h-6 w-[1px] bg-white/10 hidden md:block" />
+
+               <div className={`text-[11px] font-mono font-black px-2.5 py-1 rounded-lg tabular-nums ${
+                 timeLeft <= 30
+                   ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
+                   : timeLeft <= 60
+                     ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20"
+                     : "bg-white/5 text-zinc-400 border border-white/10"
+               }`}>
+                 ⏱ {formatTime(timeLeft)}
+               </div>
             </div>
           )}
 
@@ -314,6 +360,71 @@ export default function Home() {
                       <p className="text-white font-bold text-xl">Peer Disconnected</p>
                       <Button onClick={() => handleSkipWithReset(userProfile)} className="mt-6">Find Next Match</Button>
                    </div>
+                )}
+
+                {/* Session Ending — Consent Prompt */}
+                {sessionEndingSoon && !connectionSaved && !sessionTimedOut && !peerDisconnected && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 backdrop-blur-md z-30 animate-fade-in-up">
+                    <div className="glass-panel rounded-3xl p-8 max-w-sm text-center border border-orange-500/20 shadow-2xl">
+                      <div className="w-16 h-16 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-orange-500/20">
+                        <Sparkles className="w-8 h-8 text-orange-500" />
+                      </div>
+
+                      <h3 className="text-xl font-bold mb-2">Enjoying the conversation?</h3>
+                      <p className="text-sm text-zinc-400 mb-6">
+                        Session ends in <span className={`font-mono font-bold ${timeLeft <= 10 ? "text-red-400" : "text-orange-400"}`}>{formatTime(timeLeft)}</span>.
+                        Stay connected?
+                      </p>
+
+                      {consentSent ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+                          <p className="text-sm text-zinc-400">Waiting for your partner...</p>
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={emitConsent}
+                            className="flex-1 shadow-orange-500/20"
+                          >
+                            Yes, stay!
+                          </Button>
+                          <Button
+                            onClick={() => setSessionEndingSoon(false)}
+                            variant="secondary"
+                            className="flex-1"
+                          >
+                            No thanks
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Connection Saved Toast */}
+                {connectionSaved && !peerDisconnected && (
+                  <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 glass-panel px-6 py-3 rounded-2xl flex items-center gap-3 animate-fade-in-up border border-green-500/20 shadow-xl">
+                    <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-green-400">Connection Saved!</p>
+                      <p className="text-[10px] text-zinc-400">Session extended.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Session Timed Out Overlay */}
+                {sessionTimedOut && !peerDisconnected && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/90 backdrop-blur-md z-20">
+                    <AlertCircle className="w-12 h-12 text-orange-500 mb-2" />
+                    <p className="text-white font-bold text-xl">Session Ended</p>
+                    <p className="text-sm text-zinc-400 mt-1 mb-6">Your 5-minute session has expired.</p>
+                    <Button onClick={() => {
+                      handleSkipWithReset(userProfile);
+                    }}>Find Next Match</Button>
+                  </div>
                 )}
               </div>
             </div>

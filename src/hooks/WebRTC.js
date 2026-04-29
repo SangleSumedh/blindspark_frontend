@@ -26,6 +26,13 @@ export default function useWebRTC() {
   const [peerModerationAlert, setPeerModerationAlert] = useState(null); // { type, severity, message }
   const [personalModerationAlert, setPersonalModerationAlert] = useState(null); // { type, severity, message }
   const [karmaUpdate, setKarmaUpdate] = useState(null); // { karma, isBanned }
+  
+  // Session states
+  const [sessionEndingSoon, setSessionEndingSoon] = useState(false);
+  const [consentSent, setConsentSent] = useState(false);
+  const [connectionSaved, setConnectionSaved] = useState(false);
+  const [sessionTimedOut, setSessionTimedOut] = useState(false);
+
   const matchedPeerOdId = useRef(null); // track peer's odId for reporting
 
   const iceServers = {
@@ -159,6 +166,31 @@ export default function useWebRTC() {
     socketRef.current.on("karma-updated", (data) => {
       console.log("[Moderation] Karma updated:", data);
       setKarmaUpdate(data);
+    });
+
+    // 8. Session timer events
+    socketRef.current.on("session-ending-soon", ({ timeLeftMs }) => {
+      console.log(`[Session] Ending soon — ${timeLeftMs / 1000}s left`);
+      setSessionEndingSoon(true);
+    });
+
+    socketRef.current.on("session-timeout", () => {
+      console.log("[Session] Timed out");
+      setSessionTimedOut(true);
+      setConnected(false);
+      setSessionEndingSoon(false);
+      cleanupPC();
+    });
+
+    // 9. Consent events
+    socketRef.current.on("consent-ack", ({ waitingForPeer }) => {
+      console.log("[Consent] Acknowledged, waiting for peer:", waitingForPeer);
+      // consentSent is already true from emitConsent()
+    });
+
+    socketRef.current.on("connection-saved", ({ connectionId }) => {
+      console.log("[Consent] Connection saved:", connectionId);
+      setConnectionSaved(true);
     });
 
     return () => {
@@ -325,6 +357,11 @@ export default function useWebRTC() {
     setPersonalModerationAlert(null);
     setKarmaUpdate(null);
     
+    setSessionEndingSoon(false);
+    setConsentSent(false);
+    setConnectionSaved(false);
+    setSessionTimedOut(false);
+    
     // Immediately join queue again
     setStatus("searching");
     if (socketRef.current) {
@@ -348,6 +385,14 @@ export default function useWebRTC() {
         nsfwScore,
         severity,
       });
+    }
+  };
+
+  // Emit consent to save connection
+  const emitConsent = () => {
+    if (socketRef.current && currentRoomId.current) {
+      socketRef.current.emit("consent-to-connect");
+      setConsentSent(true);
     }
   };
 
@@ -378,5 +423,10 @@ export default function useWebRTC() {
     clearKarmaUpdate,
     toggleMute,
     toggleVideo,
+    sessionEndingSoon,
+    consentSent,
+    connectionSaved,
+    sessionTimedOut,
+    emitConsent,
   };
 }
