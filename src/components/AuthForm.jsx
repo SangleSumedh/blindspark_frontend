@@ -24,8 +24,6 @@ export default function AuthForm({ onLogin, onSignup, onGoogleLogin, error, load
   return (
     <div className="w-screen h-screen bg-black flex items-center justify-center relative overflow-hidden">
       <div className={styles.noiseOverlay} />
-      {/* ambient glow top-center */}
-      <div className="absolute top-[-100px] left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255, 80, 0, 0.1) 0%, transparent 70%)' }}></div>
 
       <div className={`${styles.loginCard} relative z-[2] w-full max-w-[420px] px-[48px] pt-[52px] pb-[44px] border border-white/10 bg-white/[0.02] backdrop-blur-[12px]`}>
 

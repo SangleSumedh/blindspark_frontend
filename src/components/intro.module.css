@@ -3,21 +3,78 @@
   inset: 0;
   pointer-events: none;
   z-index: 5;
-  opacity: 0.6;
+  opacity: 0.45;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
   background-size: 200px 200px;
 }
 
+/* ── Fire float animation ── */
+@keyframes fireFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* ── Glow breathing ── */
+@keyframes glowBreathe {
+  0%, 100% { scale: 1; }
+  50%      { scale: 1.06; }
+}
+
+/* ── Pulse-down line ── */
 @keyframes pulseDown {
   0%, 100% { opacity: 0; transform: scaleY(0.5) translateY(-6px); }
-  55% { opacity: 1; transform: scaleY(1) translateY(0); }
+  55%      { opacity: 1; transform: scaleY(1)   translateY(0); }
+}
+
+/* ── Tagline fade-slide ── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── CTA group rise ── */
+@keyframes ctaRise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fireContainer {
+  will-change: transform, opacity;
+  animation: fireFloat 3s ease-in-out infinite;
+}
+
+.glowOrb {
+  will-change: transform, opacity;
+  animation: glowBreathe 4s ease-in-out infinite;
 }
 
 .pulseLine {
   width: 1px;
   height: 30px;
   background: linear-gradient(to bottom, rgba(255, 90, 0, 0.7), transparent);
-  animation: pulseDown 1.8s ease-in-out infinite;
+  animation: pulseDown 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.tagline {
+  will-change: opacity, transform;
+}
+
+.taglineVisible {
+  animation: fadeSlideUp 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ctaGroup {
+  will-change: opacity, transform;
+}
+
+.ctaGroupVisible {
+  animation: ctaRise 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.enterBtn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .enterBtn::before {
@@ -26,7 +83,16 @@
   inset: 0;
   background: linear-gradient(90deg, transparent, rgba(255, 90, 0, 0.12), transparent);
   transform: translateX(-100%);
-  transition: transform 0.5s ease;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .enterBtn:hover::before { transform: translateX(100%); }
+
+.enterBtn:hover {
+  box-shadow: 0 0 24px rgba(255, 100, 0, 0.2), inset 0 0 24px rgba(255, 100, 0, 0.04);
+}
+
+/* ── Flood overlay ── */
+.floodOverlay {
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}

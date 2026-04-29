@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import useWebRTC from "@/hooks/WebRTC";
+import Lottie from 'lottie-react';
+import fireAnimationData from '../animations/fire.json';
 import useVideoModeration from "@/hooks/useVideoModeration";
 import useAudioModeration from "@/hooks/useAudioModeration";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +13,7 @@ import VideoTile from "@/components/videoTile";
 import ModerationOverlay from "@/components/ModerationOverlay";
 import AudioModerationOverlay from "@/components/AudioModerationOverlay";
 import LoginPage from "@/components/LoginPage";
+import NavLogo from "@/components/NavLogo";
 import ReportModal from "@/components/ReportModal";
 import ProfileSetup from "@/components/ProfileSetup";
 import { Card } from "@/components/ui/Card";
@@ -226,9 +229,8 @@ export default function Home() {
         {/* Header (Glass Pill) */}
         <header className="flex justify-between items-center mb-6 glass rounded-full px-6 py-3 mx-4 md:mx-0">
           <div className="flex items-center gap-3">
-            <img src="/Logo2.png" alt="BlindSpark Logo" className="h-8 w-auto" />
+            <NavLogo />
             <div className="flex items-center gap-2">
-              <span className="font-bold tracking-tight hidden sm:inline">BlindSpark</span>
               <div 
                 className={`h-2.5 w-2.5 rounded-full transition-all duration-500 shadow-sm ${
                   peerDisconnected ? "bg-red-500 shadow-[0_0_8px_#ef4444]" :
@@ -316,13 +318,28 @@ export default function Home() {
           )}
 
           {status === "idle" ? (
-            <Card className="max-w-md w-full text-center py-8 md:py-12 px-6 md:px-8 border-zinc-800 bg-zinc-900/50">
+            <Card className="max-w-xl w-full text-center py-8 md:py-12 px-6 md:px-8 border-zinc-800 bg-zinc-900/50">
               <div className="w-20 h-20 md:w-24 md:h-24 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-orange-500/20">
                 <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-orange-500" />
               </div>
-              <h2 className="text-xl md:text-2xl font-bold mb-2">Find your sparq</h2>
+              <h2 className="text-xl md:text-2xl font-bold mb-2">Meet someone. No profiles. Just vibes.</h2>
               <p className="text-sm md:text-base text-zinc-400 mb-8">Connect with people who share your vibe. Safe, anonymous, and powered by smart matching.</p>
-              <Button onClick={handleStart} size="lg" className="w-full text-lg shadow-orange-900/50">Start Matching</Button>
+               <Button 
+                 onClick={handleStart} 
+                 variant="ghost"
+                 size="lg" 
+                 className="w-full text-lg border border-orange-500 text-white bg-transparent hover:bg-orange-500/10 transition-all shadow-lg shadow-orange-500/10 flex items-center justify-center gap-2"
+               >
+                 Enter a Spark Session
+                 <div style={{ width: 32, height: 32, marginTop: -4 }}>
+                   <Lottie
+                     animationData={fireAnimationData}
+                     loop
+                     autoplay
+                     style={{ width: '100%', height: '100%' }}
+                   />
+                 </div>
+               </Button>
             </Card>
           ) : (
             <div className="w-full h-full max-h-[85vh] md:max-h-[70vh] flex flex-col md:flex-row gap-4 relative">
