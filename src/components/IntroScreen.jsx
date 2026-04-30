@@ -27,7 +27,9 @@ export default function IntroScreen({ onEnter }) {
     const cRect = containerRef.current.getBoundingClientRect();
     const cx     = iRect.left + iRect.width  / 2 - cRect.left;
     const topOfI = iRect.top  - cRect.top;
-    setFirePos({ left: cx - 30 - 17, top: topOfI - 60 });
+    // Scale the Lottie visual-center offset proportionally to font size
+    const nudge = 17 * (iRect.height / 128);
+    setFirePos({ left: cx - 30 - nudge, top: topOfI - 60 });
   };
 
   useEffect(() => {
@@ -86,8 +88,9 @@ export default function IntroScreen({ onEnter }) {
       {/* Ambient glow orb */}
       {firePos && (
         <div
-          className={`absolute w-[520px] h-[520px] rounded-full pointer-events-none z-[2] ${styles.glowOrb} ${glowVisible ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute rounded-full pointer-events-none z-[2] ${styles.glowOrb} ${glowVisible ? 'opacity-100' : 'opacity-0'}`}
           style={{ 
+            width: 520, height: 520,
             left: firePos.left + 30, top: firePos.top + 30,
             marginLeft: -260, marginTop: -260,
             background: 'radial-gradient(circle, rgba(255, 90, 0, 0.14) 0%, rgba(255, 40, 0, 0.06) 40%, transparent 70%)',
@@ -99,7 +102,7 @@ export default function IntroScreen({ onEnter }) {
       {/* Title text */}
       <div className="relative z-[3]">
         <span
-          className={`font-inter text-[clamp(64px,11vw,128px)] tracking-[0.1em] text-white leading-none relative select-none whitespace-nowrap inline-block`}
+          className={`${styles.title} font-inter text-white leading-none relative select-none whitespace-nowrap inline-block`}
           style={{
             opacity: textVisible ? 1 : 0,
             transform: textVisible ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
@@ -143,7 +146,7 @@ export default function IntroScreen({ onEnter }) {
 
       {/* Tagline */}
       <p
-        className={`absolute bottom-[calc(50%-90px)] left-0 right-0 text-center font-rajdhani text-[clamp(10px,1.1vw,13px)] font-light tracking-[0.5em] text-white/50 uppercase whitespace-nowrap z-[4] ${styles.tagline} ${tagVisible ? styles.taglineVisible : 'opacity-0'}`}
+        className={`absolute bottom-[calc(50%-90px)] left-0 right-0 text-center font-rajdhani font-light text-white/50 uppercase z-[4] ${styles.tagline} ${styles.taglineText} ${tagVisible ? styles.taglineVisible : 'opacity-0'}`}
       >
         Ignite your edge
       </p>

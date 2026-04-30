@@ -246,7 +246,7 @@ export default function Home() {
 
       <Navbar status={status} peerDisconnected={peerDisconnected} />
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto p-6 md:p-12 flex-1 flex flex-col">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-3 sm:p-6 md:p-12 flex-1 flex flex-col">
 
 
         {/* Main Content Area */}
@@ -277,14 +277,14 @@ export default function Home() {
                </Button>
             </Card>
           ) : (
-            <div className="w-full flex-1 flex flex-col md:flex-row gap-4 relative min-h-0 py-4">
+            <div className="w-full flex-1 flex flex-col gap-3 sm:gap-4 relative min-h-0 py-2 sm:py-4">
               
               {/* Local Video (Floating & Draggable) */}
                <Draggable 
-                className="top-4 right-4 md:top-auto md:right-auto md:left-4 md:bottom-24"
+                className="top-2 right-2 sm:top-4 sm:right-4"
                 initialPos={{ x: 0, y: 0 }}
                >
-                  <div className="w-24 h-32 md:w-48 md:h-36 rounded-xl md:rounded-2xl overflow-hidden border-2 border-zinc-800 bg-zinc-900 shadow-2xl relative group cursor-grab active:cursor-grabbing">
+                  <div className="w-20 h-28 sm:w-24 sm:h-32 md:w-48 md:h-36 rounded-xl md:rounded-2xl overflow-hidden border-2 border-zinc-800 bg-zinc-900 shadow-2xl relative group cursor-grab active:cursor-grabbing">
                     <VideoTile videoRef={localVideoRef} muted />
                     <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-bold text-zinc-300 pointer-events-none">YOU</div>
                     {/* Hover Hint */}
@@ -296,7 +296,7 @@ export default function Home() {
                </Draggable>
 
               {/* Remote Video (Main) */}
-              <div className="flex-1 rounded-3xl overflow-hidden border border-zinc-800 bg-black relative shadow-2xl group aspect-video self-center max-h-full">
+              <div className="flex-1 rounded-2xl sm:rounded-3xl overflow-hidden border border-zinc-800 bg-black relative shadow-2xl group min-h-[50vh] sm:min-h-0 sm:aspect-video self-center max-h-full w-full">
                 <div className={`w-full h-full transition-all duration-500 ${moderationState === 'blurred' || (peerModerationAlert && (peerModerationAlert.severity === 'blur' || peerModerationAlert.severity === 'mute' || peerModerationAlert.severity === 'terminate')) ? 'blur-[30px] scale-105' : ''}`}>
                   <VideoTile videoRef={remoteVideoRef} />
                 </div>
@@ -305,11 +305,11 @@ export default function Home() {
                 {connected && matchData && (
                   <>
                     {/* Top Left: User Info & Shared Vibes */}
-                    <div className="absolute top-4 left-4 z-40 flex flex-col gap-2 animate-fade-in">
-                      <div className="glass-panel px-4 py-2.5 rounded-2xl border border-orange-500/20 shadow-xl overflow-hidden flex items-center gap-3">
+                    <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-40 flex flex-col gap-1.5 sm:gap-2 animate-fade-in">
+                      <div className="glass-panel px-2.5 py-1.5 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl border border-orange-500/20 shadow-xl overflow-hidden flex items-center gap-2 sm:gap-3">
                          <div className="flex flex-col leading-tight">
-                           <div className="text-[9px] text-zinc-500 uppercase font-black tracking-[0.2em]">Connected</div>
-                           <div className="text-sm font-bold text-orange-400">{matchData.peerProfile?.displayName || "Anonymous"}</div>
+                           <div className="text-[8px] sm:text-[9px] text-zinc-500 uppercase font-black tracking-[0.2em]">Connected</div>
+                           <div className="text-xs sm:text-sm font-bold text-orange-400">{matchData.peerProfile?.displayName || "Anonymous"}</div>
                          </div>
                       </div>
                       
@@ -331,15 +331,15 @@ export default function Home() {
                     </div>
 
                     {/* Top Right: Session Timer */}
-                    <div className="absolute top-4 right-4 z-40 animate-fade-in">
-                      <div className={`glass-panel px-4 py-2.5 rounded-2xl font-mono font-black tabular-nums border shadow-xl flex items-center gap-2 ${
+                    <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-40 animate-fade-in">
+                      <div className={`glass-panel px-2.5 py-1.5 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl font-mono text-xs sm:text-base font-black tabular-nums border shadow-xl flex items-center gap-1.5 sm:gap-2 ${
                         connectionSaved 
                           ? "bg-green-500/20 text-green-400 border-green-500/20"
                           : timeLeft <= 30
                             ? "bg-red-500/20 text-red-400 border-red-500/30 animate-pulse"
                             : "bg-black/40 text-zinc-300 border-white/10"
                       }`}>
-                        <Clock size={14} className={timeLeft <= 30 ? "animate-pulse" : ""} />
+                        <Clock size={12} className={`sm:w-[14px] sm:h-[14px] ${timeLeft <= 30 ? "animate-pulse" : ""}`} />
                         {connectionSaved ? "∞" : formatTime(timeLeft)}
                       </div>
                     </div>
@@ -383,8 +383,8 @@ export default function Home() {
 
                 {/* Session Ending — Consent Prompt */}
                 {sessionEndingSoon && !connectionSaved && !sessionTimedOut && !peerDisconnected && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 backdrop-blur-md z-30 animate-fade-in-up">
-                    <div className="glass-panel rounded-3xl p-8 max-w-sm text-center border border-orange-500/20 shadow-2xl">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 backdrop-blur-md z-30 animate-fade-in-up p-4">
+                    <div className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-8 max-w-sm w-full text-center border border-orange-500/20 shadow-2xl">
                       <div className="w-16 h-16 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-orange-500/20">
                         <Sparkles className="w-8 h-8 text-orange-500" />
                       </div>
@@ -453,7 +453,7 @@ export default function Home() {
 
         {/* Controls Dock (Glass) */}
         {status !== "idle" && (
-           <div className="fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 glass-dock px-4 py-3 md:px-6 md:py-4 rounded-2xl md:rounded-3xl flex items-center gap-2 md:gap-4 z-50 w-[95%] md:w-auto justify-between md:justify-center max-w-sm md:max-w-none">
+           <div className="fixed bottom-3 sm:bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 glass-dock px-3 py-2.5 sm:px-4 sm:py-3 md:px-6 md:py-4 rounded-2xl md:rounded-3xl flex items-center gap-1.5 sm:gap-2 md:gap-4 z-50 w-[96%] sm:w-[95%] md:w-auto justify-between md:justify-center max-w-sm md:max-w-none">
               <button 
                 onClick={toggleMute}
                 disabled={audioModerationState === "muted" || audioModerationState === "terminated"}

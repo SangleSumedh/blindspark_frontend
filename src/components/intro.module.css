@@ -92,7 +92,41 @@
   box-shadow: 0 0 24px rgba(255, 100, 0, 0.2), inset 0 0 24px rgba(255, 100, 0, 0.04);
 }
 
+/* ── Title ── */
+.title {
+  font-size: clamp(64px, 11vw, 128px);
+  letter-spacing: 0.1em;
+}
+
+/* ── Tagline text ── */
+.taglineText {
+  font-size: clamp(10px, 1.1vw, 13px);
+  letter-spacing: 0.5em;
+  white-space: nowrap;
+}
+
 /* ── Flood overlay ── */
 .floodOverlay {
   transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 640px) {
+  .title {
+    font-size: 7.5vw;
+    letter-spacing: 0.03em;
+  }
+
+  .taglineText {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 360px) {
+  .title {
+    font-size: 6.5vw;
+    letter-spacing: 0.02em;
+  }
 }

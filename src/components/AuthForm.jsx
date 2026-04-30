@@ -25,7 +25,7 @@ export default function AuthForm({ onLogin, onSignup, onGoogleLogin, error, load
     <div className="w-screen h-screen bg-black flex items-center justify-center relative overflow-hidden">
       <div className={styles.noiseOverlay} />
 
-      <div className={`${styles.loginCard} relative z-[2] w-full max-w-[420px] px-[48px] pt-[52px] pb-[44px] border border-white/10 bg-white/[0.02] backdrop-blur-[12px]`}>
+      <div className={`${styles.loginCard} relative z-[2] w-full max-w-[420px] mx-4 px-6 sm:px-[48px] pt-[44px] sm:pt-[52px] pb-[36px] sm:pb-[44px] border border-white/10 bg-white/[0.02] backdrop-blur-[12px]`}>
 
         {/* Logo */}
         <div className="font-bebas text-[36px] tracking-[0.12em] text-white text-center mb-[6px] drop-shadow-[0_0_40px_rgba(255,90,0,0.35)]">
